@@ -1,0 +1,11 @@
+Package: rivertile
+Type: Package
+Title: R interface for SWOT rivertile data
+Version: 0.0.0.9000
+Authors@R: person("Mark", "Hagemann", email = "mark.hagemann@gmail.com", 
+    role = c("aut", "cre"))
+Description: Functions to work with SWOT rivertile data as produced by RiverObs. 
+    Includes uncertainty quantification and validation for SWOT river processing algorithms.
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
