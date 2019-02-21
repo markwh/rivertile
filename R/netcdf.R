@@ -36,6 +36,12 @@ rt_read <- function(ncfile, group = c("nodes", "reaches"),
   outvals_df
 }
 
+
+#' Read a pixcvec from a netcdf file
+#'
+#' @param ncfile PIXCVEC netcdf file
+#' @param keep_na_vars Keep variables that only contain missing values?
+#' @export
 pixcvec_read <- function(ncfile, keep_na_vars = FALSE) {
 
   pcv_nc <- nc_open(ncfile)
@@ -129,7 +135,8 @@ priordb_read <- function(ncfile, group = c("reaches", "nodes", "centerlines"),
 }
 
 #' Get a validation dataset from a set of RiverObs runs
-
+#'
+#' @export
 rt_valdata <- function(dir, group = c("nodes", "reaches"),
                        rtname = "rt.nc", gdname = "rt_gdem.nc",
                        keep_na_vars = FALSE,
