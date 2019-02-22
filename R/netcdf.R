@@ -11,6 +11,7 @@
 #'
 #' @importFrom ncdf4 nc_open nc_close ncvar_get
 #' @importFrom purrr map map_lgl
+#' @importFrom dplyr "%>%"
 #' @export
 
 rt_read <- function(ncfile, group = c("nodes", "reaches"),
@@ -136,6 +137,15 @@ priordb_read <- function(ncfile, group = c("reaches", "nodes", "centerlines"),
 
 #' Get a validation dataset from a set of RiverObs runs
 #'
+#' @param dir directory containing riverobs output including gdem truth
+#' @param group Which group to get data from: "nodes" or "reaches
+#' @param rtname Name of rivertile file to read
+#' @param gdname Name of gdem-truth rivertile file
+#' @param keep_na_vars Keep variables that only contain missing values?
+#' @param time_round_digits how many digits to round time (secondes) to
+#'  consider equal between gdem pixc and "real" pixc
+#' @importFrom dplyr left_join
+#' @importFrom tidyr gather
 #' @export
 rt_valdata <- function(dir, group = c("nodes", "reaches"),
                        rtname = "rt.nc", gdname = "rt_gdem.nc",
@@ -198,7 +208,7 @@ rt_valdata <- function(dir, group = c("nodes", "reaches"),
   commondf <- rtdf[c(idvars, commonvars)]
   out <- rtdf_g %>%
     left_join(gddf_g, by = c(idvars, "variable")) %>%
-    mutate(pixc_err = pixc_val - gdem_val) %>%
+    dplyr::mutate(pixc_err = pixc_val - gdem_val) %>%
     left_join(uncdf_g, by = c(idvars, "variable")) %>%
     left_join(commondf, by = idvars)
   out

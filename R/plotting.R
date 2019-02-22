@@ -11,9 +11,10 @@
 #'   both \code{center} and \code{scale} are \code{TRUE}.
 #' @param vars Which variables to plot? Defaults to "all"
 #' @param ... Passed to \code{rt_valdata()}
+#' @importFrom dplyr group_by ungroup
 #' @export
 
-rt_val_hist <- function(dir, center = FALSE, scale = TRUE,
+rt_val_hist <- function(dir, center = FALSE, scale = FALSE,
                         curve = center && scale,
                         vars = "all",
                         ...) {
@@ -58,6 +59,8 @@ rt_val_hist <- function(dir, center = FALSE, scale = TRUE,
 #' @param variable Which variable to plot?
 #' @param err_only Only plot the errors (subtract off truth value)?
 #' @param ... Passed to \code{rt_valdata()}
+#'
+#' @importFrom dplyr mutate
 #' @export
 
 rt_val_nodeseries <- function(dir, variable = "height", err_only = TRUE, ...) {
@@ -81,5 +84,75 @@ rt_val_nodeseries <- function(dir, variable = "height", err_only = TRUE, ...) {
                     ymax = baseval + sigma_est), fill = "#7780ff") +
     geom_point(aes_string(y = yvar)) +
     theme_bw()
+  out
+}
+
+#' Returns a vector of worst-performing nodes (by error)
+#'
+#' @export
+badnodes <- function(valdata, variable = "width", n = 4,
+                     which = c("abs", "min", "max")) {
+  which <- match.arg(which)
+  valdata <- valdata[valdata[["variable"]] == variable, ]
+  errvec <- valdata$pixc_err
+  if (which == "abs") errvec <- -abs(errvec) else
+    if (which == "max") errvec <- -errvec
+
+  badords <- order(errvec)[1:n]
+
+  out <- valdata$node_id[badords]
+  out
+}
+
+#' Map a given number of nodes' pixcvec locations--gdem versus rivertile
+#'
+#' @param valdata data.frame as returned by \code{rt_valdata()}
+#' @param nodes A vector of node_id's, defaults to worst nodes using \code{badnodes()}
+#' @param pcv1 Name of first pixcvec netcdf
+#' @param pcv2 Name of second pixcvec netcdf
+#' @param maxpixels Maximum number of pixels to plot, as a random sample if necessary.
+#' @param leaflet Use interactive leaflet plot? Otherwise uses ggplot.
+#' @param ... Passed to \code{rt_valdata}
+#'
+#' @importFrom fs path
+#' @importFrom dplyr rename
+#'
+#' @export
+val_map_node <- function(dir, nodes = badnodes(rt_valdata(dir)),
+                         pcv1 = "pcv.nc", pcv2 = "pcv_gdem.nc",
+                         maxpixels = 1000, leaflet = TRUE, ...) {
+
+  pcvdata1 <- pixcvec_read(path(dir, pcv1)) %>%
+    dplyr::filter(node_index %in% nodes) %>%
+    rename(lat = latitude_vectorproc, lon = longitude_vectorproc)
+  pcvdata2 <- pixcvec_read(path(dir, pcv2)) %>%
+    dplyr::filter(node_index %in% nodes) %>%
+    rename(lat = latitude_vectorproc, lon = longitude_vectorproc)
+
+  if (nrow(pcvdata1) > maxpixels) {
+    message("Subsampling pixcvec 1. Change using `maxpixels` argument.")
+    pcvdata1 <- dplyr::sample_n(pcvdata1, maxpixels)
+  }
+  if (nrow(pcvdata2) > maxpixels) {
+    message("Subsampling pixcvec 2. Change using `maxpixels` argument.")
+    pcvdata2 <- dplyr::sample_n(pcvdata2, maxpixels)
+  }
+
+  if (leaflet) {
+    out <- leaflet() %>%
+      addTiles() %>%
+      addCircleMarkers(data = pcvdata1, lng = ~lon, lat = ~lat,
+                       radius = 2, color = "blue") %>%
+      addCircleMarkers(data = pcvdata2, lng = ~lon, lat = ~lat,
+                       radius = 2, color = "red")
+  } else {
+    bbox <- ggmap::make_bbox(pcvdata1$lon, pcvdata1$lat)
+    satmap <- ggmap::get_map(location = bbox, maptype = "terrain", source = "google")
+    out <- ggmap(satmap) +
+      geom_point(data = pcvdata1, aes(x = lon, y = lat), color = "blue", size = 2) +
+      geom_point(data = pcvdata2, aes(x = lon, y = lat), color = "red", size = 2)
+    out
+  }
+
   out
 }
