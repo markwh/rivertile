@@ -4,10 +4,10 @@
 \alias{rt_val_nodeseries}
 \title{Plot predictions and uncertainty bounds across nodes}
 \usage{
-rt_val_nodeseries(dir, variable = "height", err_only = TRUE, ...)
+rt_val_nodeseries(valdata, variable = "height", err_only = TRUE, ...)
 }
 \arguments{
-\item{dir}{directory containing riverobs output including gdem truth}
+\item{valdata}{data.frame as returned by code{rt_valdata()}}
 
 \item{variable}{Which variable to plot?}
 

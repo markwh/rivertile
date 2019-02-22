@@ -4,7 +4,7 @@
 #'
 #' Currently only implemented for node-level data
 #'
-#' @param dir directory containing riverobs output including gdem truth
+#' @param valdata data.frame as returned by code{rt_valdata()}
 #' @param center Subtract the mean (bias-correct) the errors?
 #' @param scale Scale the errors by 1-sigma uncertainty estimates?
 #' @param curve Overlay a standard normal curve? This is the default if
@@ -14,13 +14,11 @@
 #' @importFrom dplyr group_by ungroup
 #' @export
 
-rt_val_hist <- function(dir, center = FALSE, scale = FALSE,
+rt_val_hist <- function(valdata, center = FALSE, scale = FALSE,
                         curve = center && scale,
                         vars = "all",
                         ...) {
   # Currently only implemented for nodes
-
-  valdata <- rt_valdata(dir, group = "nodes", ...)
 
   if (length(vars) > 1 || vars != "all") {
     valdata <- valdata %>%
@@ -55,7 +53,7 @@ rt_val_hist <- function(dir, center = FALSE, scale = FALSE,
 
 #' Plot predictions and uncertainty bounds across nodes
 #'
-#' @param dir directory containing riverobs output including gdem truth
+#' @param valdata data.frame as returned by code{rt_valdata()}
 #' @param variable Which variable to plot?
 #' @param err_only Only plot the errors (subtract off truth value)?
 #' @param ... Passed to \code{rt_valdata()}
@@ -63,8 +61,9 @@ rt_val_hist <- function(dir, center = FALSE, scale = FALSE,
 #' @importFrom dplyr mutate
 #' @export
 
-rt_val_nodeseries <- function(dir, variable = "height", err_only = TRUE, ...) {
-  valdata <- rt_valdata(dir, group = "nodes", ...) %>%
+rt_val_nodeseries <- function(valdata, variable = "height", err_only = TRUE, ...) {
+
+  valdata <- valdata %>%
     `[`(.$variable == variable, ) %>%
     mutate(value = pixc_val, err = pixc_err)
 

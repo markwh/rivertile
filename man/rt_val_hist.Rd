@@ -4,11 +4,11 @@
 \alias{rt_val_hist}
 \title{Plot a histogram of errors, possibly scaled by uncertainty estimates}
 \usage{
-rt_val_hist(dir, center = FALSE, scale = FALSE, curve = center &&
+rt_val_hist(valdata, center = FALSE, scale = FALSE, curve = center &&
   scale, vars = "all", ...)
 }
 \arguments{
-\item{dir}{directory containing riverobs output including gdem truth}
+\item{valdata}{data.frame as returned by code{rt_valdata()}}
 
 \item{center}{Subtract the mean (bias-correct) the errors?}
 
