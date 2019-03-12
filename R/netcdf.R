@@ -135,6 +135,66 @@ priordb_read <- function(ncfile, group = c("reaches", "nodes", "centerlines"),
   outvals_df
 }
 
+#' Create validation data from two node-level rivertile data.frames.
+#'
+#' @export
+rt_valdata_df <- function(obs, truth, time_round_digits = -2) {
+  # ID variables for joining rivertile to gdem
+  idvars <- c("reach_id", "node_id", "time", "time_tai")
+  idvars <- intersect(names(obs), idvars)
+
+  # time variables need to be rounded.
+  timevars <- intersect(c("time", "time_tai"), names(obs))
+  obs[timevars] <- round(obs[timevars], digits = time_round_digits)
+  truth[timevars] <- round(truth[timevars], digits = time_round_digits)
+
+  # variables assumed constant between rivertile and gdem, can be joined
+  # separately. Or, variables only meaningful for actual rivertile data
+  commonvars_rch <- c(
+    "p_latitud", "p_longitud", "p_n_nodes", "xtrk_dist", "partial_f",
+    "n_good_nod", "obs_frac_n", "reach_q", "geoid_height", "geoid_slop",
+    "solid_tide", "pole_tide", "load_tide", "dry_trop_c", "wet_trp_c", "iono_c",
+    "xover_cal_c", "p_n_nodes", "p_dist_out"
+  )
+  commonvars_nod <- c(
+    "area_of_ht", "node_dist", "xtrk_dist", "n_good_pix", "node_q",
+    "solid_tide", "pole_tide", "load_tide", "dry_trop_c", "wet_trop_c",
+    "iono_c", "xover_cal_c", "p_dist_out"
+  )
+  commonvars <- intersect(names(obs), c(commonvars_rch, commonvars_nod))
+
+  # Vector of variables to compare between rivertile and gdem
+  varnames <- c("height", "height2", "slope", "width", "area_detct", "area_total",
+                "latitude", "longitude")
+  # Corresponding uncertainty variables
+  uncnames <- setNames(
+    c("height_u", "height2_u", "slope_u", "width_u", "area_det_u", "area_tot_u",
+      "latitude_u", "longitud_u"),
+    varnames
+  )
+
+  varnames <- intersect(names(obs), varnames)
+  uncnames <- uncnames[varnames]
+
+  # Make gathered data.frames
+  obs_g <- gather(obs[c(idvars, varnames)],
+                   key = "variable", value = "pixc_val", -!!idvars)
+  truth_g <- gather(truth[c(idvars, varnames)],
+                   key = "variable", value = "gdem_val", -!!idvars)
+  uncdf_g <- obs[c(idvars, uncnames)] %>%
+    setNames(plyr::mapvalues(names(.), from = uncnames, to = varnames)) %>%
+    gather(key = "variable", value = "sigma_est", -!!idvars)
+
+  # Join together, including "common" variables
+  commondf <- obs[c(idvars, commonvars)]
+  out <- obs_g %>%
+    left_join(truth_g, by = c(idvars, "variable")) %>%
+    dplyr::mutate(pixc_err = pixc_val - gdem_val) %>%
+    left_join(uncdf_g, by = c(idvars, "variable")) %>%
+    left_join(commondf, by = idvars)
+  out
+}
+
 #' Get a validation dataset from a set of RiverObs runs
 #'
 #' @param dir directory containing riverobs output including gdem truth
@@ -158,59 +218,7 @@ rt_valdata <- function(dir, group = c("nodes", "reaches"),
   gddf <- rt_read(paste0(dir, "/", gdname), group = group,
                   keep_na_vars = keep_na_vars)
 
-  # ID variables for joining rivertile to gdem
-  idvars <- c("reach_id", "node_id", "time", "time_tai")
-  idvars <- intersect(names(rtdf), idvars)
-
-  # time variables need to be rounded.
-  timevars <- intersect(c("time", "time_tai"), names(rtdf))
-  rtdf[timevars] <- round(rtdf[timevars], digits = time_round_digits)
-  gddf[timevars] <- round(gddf[timevars], digits = time_round_digits)
-
-  # variables assumed constant between rivertile and gdem, can be joined
-  # separately. Or, variables only meaningful for actual rivertile data
-  commonvars_rch <- c(
-    "p_latitud", "p_longitud", "p_n_nodes", "xtrk_dist", "partial_f",
-    "n_good_nod", "obs_frac_n", "reach_q", "geoid_height", "geoid_slop",
-    "solid_tide", "pole_tide", "load_tide", "dry_trop_c", "wet_trp_c", "iono_c",
-    "xover_cal_c", "p_n_nodes", "p_dist_out"
-  )
-  commonvars_nod <- c(
-    "area_of_ht", "node_dist", "xtrk_dist", "n_good_pix", "node_q",
-    "solid_tide", "pole_tide", "load_tide", "dry_trop_c", "wet_trop_c",
-    "iono_c", "xover_cal_c", "p_dist_out"
-  )
-  commonvars <- intersect(names(rtdf), c(commonvars_rch, commonvars_nod))
-
-  # Vector of variables to compare between rivertile and gdem
-  varnames <- c("height", "height2", "slope", "width", "area_detct", "area_total",
-                "latitude", "longitude")
-  # Corresponding uncertainty variables
-  uncnames <- setNames(
-    c("height_u", "height2_u", "slope_u", "width_u", "area_det_u", "area_tot_u",
-      "latitude_u", "longitud_u"),
-    varnames
-  )
-
-  varnames <- intersect(names(rtdf), varnames)
-  uncnames <- uncnames[varnames]
-
-  # Make gathered data.frames
-  rtdf_g <- gather(rtdf[c(idvars, varnames)],
-                   key = "variable", value = "pixc_val", -!!idvars)
-  gddf_g <- gather(gddf[c(idvars, varnames)],
-                   key = "variable", value = "gdem_val", -!!idvars)
-  uncdf_g <- rtdf[c(idvars, uncnames)] %>%
-    setNames(plyr::mapvalues(names(.), from = uncnames, to = varnames)) %>%
-    gather(key = "variable", value = "sigma_est", -!!idvars)
-
-  # Join together, including "common" variables
-  commondf <- rtdf[c(idvars, commonvars)]
-  out <- rtdf_g %>%
-    left_join(gddf_g, by = c(idvars, "variable")) %>%
-    dplyr::mutate(pixc_err = pixc_val - gdem_val) %>%
-    left_join(uncdf_g, by = c(idvars, "variable")) %>%
-    left_join(commondf, by = idvars)
+  out <- rt_valdata_df(obs = rtdf, truth = gddf, time_round_digits = -2)
   out
 }
 

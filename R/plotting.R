@@ -103,6 +103,19 @@ badnodes <- function(valdata, variable = "width", n = 4,
   out
 }
 
+val_node_data <- function(dir, nodes = badnodes(rt_valdata(dir)),
+                          pcv1 = "pcv.nc", pcv2 = "pcv_gdem.nc") {
+  pcvdata1 <- pixcvec_read(path(dir, pcv1)) %>%
+    dplyr::filter(node_index %in% nodes) %>%
+    rename(lat = latitude_vectorproc, lon = longitude_vectorproc)
+  pcvdata2 <- pixcvec_read(path(dir, pcv2)) %>%
+    dplyr::filter(node_index %in% nodes) %>%
+    rename(lat = latitude_vectorproc, lon = longitude_vectorproc)
+
+  out <- list(pcv1 = pcvdata1, pcv2 = pcvdata2)
+  out
+}
+
 #' Map a given number of nodes' pixcvec locations--gdem versus rivertile
 #'
 #' @param valdata data.frame as returned by \code{rt_valdata()}
@@ -121,12 +134,9 @@ val_map_node <- function(dir, nodes = badnodes(rt_valdata(dir)),
                          pcv1 = "pcv.nc", pcv2 = "pcv_gdem.nc",
                          maxpixels = 1000, leaflet = TRUE, ...) {
 
-  pcvdata1 <- pixcvec_read(path(dir, pcv1)) %>%
-    dplyr::filter(node_index %in% nodes) %>%
-    rename(lat = latitude_vectorproc, lon = longitude_vectorproc)
-  pcvdata2 <- pixcvec_read(path(dir, pcv2)) %>%
-    dplyr::filter(node_index %in% nodes) %>%
-    rename(lat = latitude_vectorproc, lon = longitude_vectorproc)
+  datalist <- val_node_data(dir, nodes, pcv1, pcv2)
+  pcvdata1 <- datalist[["pcv1"]]
+  pcvdata2 <- datalist[["pcv2"]]
 
   if (nrow(pcvdata1) > maxpixels) {
     message("Subsampling pixcvec 1. Change using `maxpixels` argument.")
