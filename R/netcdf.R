@@ -61,6 +61,17 @@ pixcvec_read <- function(ncfile, keep_na_vars = FALSE) {
   outvals_df
 }
 
+pixc_read_gdem <- function(ncfile) {
+  pixc_nc <- nc_open(ncfile)
+  on.exit(nc_close(pixc_nc))
+
+  ltype <- ncvar_get(pixc_nc, "landtype")
+  waterpix <- which(!is.na(ltype) & ltype == 1, arr.ind = TRUE)
+
+  lats <- ncvar_get(pixc_nc, "latitude")[waterpix[, 1], waterpix[, 2]]
+  lons <- ncvar_get(pixc_nc, "longitude")[waterpix[, 1], waterpix[, 2]]
+
+}
 
 #' Read data from a pixel_cloud netcdf file
 #'
@@ -72,6 +83,7 @@ pixcvec_read <- function(ncfile, keep_na_vars = FALSE) {
 pixc_read <- function(ncfile, group = c("pixel_cloud", "tvp", "noise"),
                       latlim = c(-90, 90), lonlim = c(-180, 180),
                       keep_na_vars = FALSE) {
+  # browser()
   group <- match.arg(group)
 
   pixc_nc <- nc_open(ncfile)
