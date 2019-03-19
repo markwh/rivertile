@@ -66,6 +66,17 @@ check_ineff <- function(inds) {
   out
 }
 
+adjust_longitude <- function(df) {
+  lonname_cands <- c("longitude", "longitude_vectorproc", "p_longitud")
+  lonnames <- intersect(lonname_cands, names(df))
+
+  for (lonname in lonnames) {
+    lonvec <- df[[lonname]]
+    df[[lonname]][lonvec > 180] <- lonvec[lonvec > 180] - 360
+  }
+  df
+}
+
 #' Get data from a rivertile netcdf
 #'
 #' @param ncfile A rivertile netcdf file
@@ -95,9 +106,7 @@ rt_read <- function(ncfile, group = c("nodes", "reaches"),
   outvals_df <- as.data.frame(outvals_list)
 
   # Comply with -180:180 convention used by RiverObs
-  outvals_df <- dplyr::mutate(outvals_df,
-      longitude = ifelse(longitude > 180,
-          longitude - 360, longitude))
+  outvals_df <- adjust_longitude(outvals_df)
 
   if (! keep_na_vars) {
     nacols <- map_lgl(outvals_list, ~sum(!is.na(.)) == 0)
@@ -124,9 +133,8 @@ pixcvec_read <- function(ncfile, keep_na_vars = FALSE) {
 
   outvals_df <- as.data.frame(outvals_list)
   # Comply with -180:180 convention used by RiverObs
-  outvals_df <- dplyr::mutate(outvals_df,
-      longitude_vectorproc = ifelse(longitude_vectorproc > 180,
-          longitude_vectorproc - 360, longitude_vectorproc))
+  outvals_df <- adjust_longitude(outvals_df)
+
   if (! keep_na_vars) {
     nacols <- map_lgl(outvals_list, ~sum(!is.na(.)) == 0)
     outvals_df <- outvals_df[!nacols]
@@ -145,7 +153,8 @@ gdem_read <- function(ncfile) {
   lats <- ncvar_ss(pixc_nc, "latitude", inds = waterpix)
   lons <- ncvar_get(pixc_nc, "longitude", inds = waterpix)
 
-  out <- data.frame(lat = lats, lon = lons)
+  out <- data.frame(latitude = lats, longitude = lons)
+  out <- adjust_longitude(out)
   out
 }
 
@@ -186,9 +195,7 @@ pixc_read <- function(ncfile, group = c("pixel_cloud", "tvp", "noise"),
   }
 
   # Comply with -180:180 convention used by RiverObs
-  outvals_df <- dplyr::mutate(outvals_df,
-                              longitude = ifelse(longitude > 180,
-                                                 longitude - 360, longitude))
+  outvals_df <- adjust_longitude(outvals_df)
 
   # Filter lat/lon that are exactly 0, restrict to bounding box
   if (group == "pixel_cloud") {
