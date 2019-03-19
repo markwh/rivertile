@@ -93,6 +93,12 @@ rt_read <- function(ncfile, group = c("nodes", "reaches"),
     setNames(grpnames)
 
   outvals_df <- as.data.frame(outvals_list)
+
+  # Comply with -180:180 convention used by RiverObs
+  outvals_df <- dplyr::mutate(outvals_df,
+      longitude = ifelse(longitude > 180,
+          longitude - 360, longitude))
+
   if (! keep_na_vars) {
     nacols <- map_lgl(outvals_list, ~sum(!is.na(.)) == 0)
     outvals_df <- outvals_df[!nacols]
