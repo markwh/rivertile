@@ -151,7 +151,8 @@ val_map_node <- function(dir, nodes = badnodes(rt_valdata(dir)),
     out <- leaflet() %>%
       addTiles() %>%
       addCircleMarkers(data = pcvdata1, lng = ~lon, lat = ~lat,
-                       radius = 2, color = "blue") %>%
+                       radius = 2, color = "blue",
+                       popup = ~paste0("node: ", node_index)) %>%
       addCircleMarkers(data = pcvdata2, lng = ~lon, lat = ~lat,
                        radius = 2, color = "red")
   } else {

@@ -1,7 +1,70 @@
 # netcdf.R
 # Process netcdf outputs of RiverObs
-# modified from notebook20190204.Rmd.
+# modified from notebook20190204.Rmd, notebook20190318.Rmd, others?
 
+
+#' Read in only a subset of a netcdf variable
+#'
+#' @param nc netcdf with variable of interest
+#' @param varid passed to \code{ncvar_get}
+#' @param inds Vector or matrix giving indices for which the variable value is desired.
+#'
+#' @export
+ncvar_ss <- function(nc, varid=NA, inds) {
+  if (length(dim(inds)) > 2) stop("dimensionality > 2 not supported.")
+  if (length(dim(inds)) == 0) {
+    return(ncvar_ss_1d(nc, varid, inds))
+  }
+  indlist <- split(inds[, 1], f = inds[, 2])
+
+  pb <- progress::progress_bar$new(total = length(indlist))
+  pb$tick(0)
+
+  vals <- list()
+  for (i in 1:length(indlist)) {
+    pb$tick()
+    vals[[i]] <- ncvar_ss_1d(nc, varid = varid, indvec = indlist[[i]],
+                             inds2 = as.numeric(names(indlist)[i]))
+  }
+  out <- unlist(vals)
+  out
+}
+
+ncvar_ss_1d <- function(nc, varid=NA, indvec, inds2 = NULL) {
+  stopifnot(is.numeric(indvec) && is.vector(indvec))
+
+  minind <- min(indvec)
+  maxind <- max(indvec)
+  indcnt <- maxind - minind + 1
+  newinds <- indvec - minind + 1
+
+  if (!is.null(inds2)) {
+    minind <- cbind(minind, inds2)
+    indcnt <- cbind(indcnt, 1)
+  }
+
+  out <- ncvar_get(nc, varid = varid, start = minind, count = indcnt)
+
+  out <- as.vector(out[newinds])
+  out
+}
+
+#' Check for inefficiencies in ncdf subset read function.
+#'
+#' Result should be close to 1.
+#'
+#' @param inds Matrix giving rows and columns of indices
+#' @export
+check_ineff <- function(inds) {
+  num1 <- nrow(inds)
+  num2 <- as.data.frame(inds) %>%
+    group_by(col) %>%
+    summarize(nret = max(row) - min(row) + 1) %>%
+    summarize(sum = sum(nret)) %>%
+    `[[`("sum")
+  out <- num2 / num1
+  out
+}
 
 #' Get data from a rivertile netcdf
 #'
@@ -61,16 +124,19 @@ pixcvec_read <- function(ncfile, keep_na_vars = FALSE) {
   outvals_df
 }
 
-pixc_read_gdem <- function(ncfile) {
+#' @export
+gdem_read <- function(ncfile) {
   pixc_nc <- nc_open(ncfile)
   on.exit(nc_close(pixc_nc))
 
   ltype <- ncvar_get(pixc_nc, "landtype")
   waterpix <- which(!is.na(ltype) & ltype == 1, arr.ind = TRUE)
 
-  lats <- ncvar_get(pixc_nc, "latitude")[waterpix[, 1], waterpix[, 2]]
-  lons <- ncvar_get(pixc_nc, "longitude")[waterpix[, 1], waterpix[, 2]]
+  lats <- ncvar_ss(pixc_nc, "latitude", inds = waterpix)
+  lons <- ncvar_get(pixc_nc, "longitude", inds = waterpix)
 
+  out <- data.frame(lat = lats, lon = lons)
+  out
 }
 
 #' Read data from a pixel_cloud netcdf file
@@ -103,6 +169,11 @@ pixc_read <- function(ncfile, group = c("pixel_cloud", "tvp", "noise"),
     nacols <- map_lgl(outvals_list, ~sum(!is.na(.)) == 0)
     outvals_df <- outvals_df[!nacols]
   }
+
+  # Comply with -180:180 convention used by RiverObs
+  outvals_df <- dplyr::mutate(outvals_df,
+                              longitude = ifelse(longitude > 180,
+                                                 longitude - 360, longitude))
 
   # Filter lat/lon that are exactly 0, restrict to bounding box
   if (group == "pixel_cloud") {
@@ -146,91 +217,3 @@ priordb_read <- function(ncfile, group = c("reaches", "nodes", "centerlines"),
   }
   outvals_df
 }
-
-#' Create validation data from two node-level rivertile data.frames.
-#'
-#' @export
-rt_valdata_df <- function(obs, truth, time_round_digits = -2) {
-  # ID variables for joining rivertile to gdem
-  idvars <- c("reach_id", "node_id", "time", "time_tai")
-  idvars <- intersect(names(obs), idvars)
-
-  # time variables need to be rounded.
-  timevars <- intersect(c("time", "time_tai"), names(obs))
-  obs[timevars] <- round(obs[timevars], digits = time_round_digits)
-  truth[timevars] <- round(truth[timevars], digits = time_round_digits)
-
-  # variables assumed constant between rivertile and gdem, can be joined
-  # separately. Or, variables only meaningful for actual rivertile data
-  commonvars_rch <- c(
-    "p_latitud", "p_longitud", "p_n_nodes", "xtrk_dist", "partial_f",
-    "n_good_nod", "obs_frac_n", "reach_q", "geoid_height", "geoid_slop",
-    "solid_tide", "pole_tide", "load_tide", "dry_trop_c", "wet_trp_c", "iono_c",
-    "xover_cal_c", "p_n_nodes", "p_dist_out"
-  )
-  commonvars_nod <- c(
-    "area_of_ht", "node_dist", "xtrk_dist", "n_good_pix", "node_q",
-    "solid_tide", "pole_tide", "load_tide", "dry_trop_c", "wet_trop_c",
-    "iono_c", "xover_cal_c", "p_dist_out"
-  )
-  commonvars <- intersect(names(obs), c(commonvars_rch, commonvars_nod))
-
-  # Vector of variables to compare between rivertile and gdem
-  varnames <- c("height", "height2", "slope", "width", "area_detct", "area_total",
-                "latitude", "longitude")
-  # Corresponding uncertainty variables
-  uncnames <- setNames(
-    c("height_u", "height2_u", "slope_u", "width_u", "area_det_u", "area_tot_u",
-      "latitude_u", "longitud_u"),
-    varnames
-  )
-
-  varnames <- intersect(names(obs), varnames)
-  uncnames <- uncnames[varnames]
-
-  # Make gathered data.frames
-  obs_g <- gather(obs[c(idvars, varnames)],
-                   key = "variable", value = "pixc_val", -!!idvars)
-  truth_g <- gather(truth[c(idvars, varnames)],
-                   key = "variable", value = "gdem_val", -!!idvars)
-  uncdf_g <- obs[c(idvars, uncnames)] %>%
-    setNames(plyr::mapvalues(names(.), from = uncnames, to = varnames)) %>%
-    gather(key = "variable", value = "sigma_est", -!!idvars)
-
-  # Join together, including "common" variables
-  commondf <- obs[c(idvars, commonvars)]
-  out <- obs_g %>%
-    left_join(truth_g, by = c(idvars, "variable")) %>%
-    dplyr::mutate(pixc_err = pixc_val - gdem_val) %>%
-    left_join(uncdf_g, by = c(idvars, "variable")) %>%
-    left_join(commondf, by = idvars)
-  out
-}
-
-#' Get a validation dataset from a set of RiverObs runs
-#'
-#' @param dir directory containing riverobs output including gdem truth
-#' @param group Which group to get data from: "nodes" or "reaches
-#' @param rtname Name of rivertile file to read
-#' @param gdname Name of gdem-truth rivertile file
-#' @param keep_na_vars Keep variables that only contain missing values?
-#' @param time_round_digits how many digits to round time (secondes) to
-#'  consider equal between gdem pixc and "real" pixc
-#' @importFrom dplyr left_join
-#' @importFrom tidyr gather
-#' @export
-rt_valdata <- function(dir, group = c("nodes", "reaches"),
-                       rtname = "rt.nc", gdname = "rt_gdem.nc",
-                       keep_na_vars = FALSE,
-                       time_round_digits = -2) {
-
-  group <- match.arg(group)
-  rtdf <- rt_read(paste0(dir, "/", rtname), group = group,
-                  keep_na_vars = keep_na_vars)
-  gddf <- rt_read(paste0(dir, "/", gdname), group = group,
-                  keep_na_vars = keep_na_vars)
-
-  out <- rt_valdata_df(obs = rtdf, truth = gddf, time_round_digits = -2)
-  out
-}
-
