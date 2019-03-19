@@ -117,6 +117,10 @@ pixcvec_read <- function(ncfile, keep_na_vars = FALSE) {
     setNames(pcvvars)
 
   outvals_df <- as.data.frame(outvals_list)
+  # Comply with -180:180 convention used by RiverObs
+  outvals_df <- dplyr::mutate(outvals_df,
+      longitude_vectorproc = ifelse(longitude_vectorproc > 180,
+          longitude_vectorproc - 360, longitude_vectorproc))
   if (! keep_na_vars) {
     nacols <- map_lgl(outvals_list, ~sum(!is.na(.)) == 0)
     outvals_df <- outvals_df[!nacols]
@@ -160,8 +164,13 @@ pixc_read <- function(ncfile, group = c("pixel_cloud", "tvp", "noise"),
   grpvars <- names(pixc_nc$var)[grepl(grepstr, names(pixc_nc$var))]
   grpnames <- splitPiece(grpvars, "/", 2, fixed = TRUE)
 
-  outvals_list <- map(grpvars, ~as.vector(ncvar_get(pixc_nc, .))) %>%
+  outvals_list <- map(grpvars, ~ncvar_get(pixc_nc, .)) %>%
     setNames(grpnames)
+  # split interferogram array into real and imaginary vectors
+  outvals_list$interferogram_r <- outvals_list$interferogram[1, ]
+  outvals_list$interferogram_i <- outvals_list$interferogram[2, ]
+  outvals_list$interferogram <- NULL
+  outvals_list <- purrr::map(outvals_list, ~as.vector(.))
 
   outvals_df <- as.data.frame(outvals_list)
 
