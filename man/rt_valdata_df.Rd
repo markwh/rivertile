@@ -6,6 +6,14 @@
 \usage{
 rt_valdata_df(obs, truth, time_round_digits = -2)
 }
+\arguments{
+\item{obs}{data.frame with observed node-level values}
+
+\item{truth}{data.frame with node-level truth values}
+
+\item{time_round_digits}{how many digits to round time (secondes) to
+consider equal between gdem pixc and "real" pixc}
+}
 \description{
-Create validation data from two node-level rivertile data.frames.
+Used internally by \code{rt_valdata()}
 }
