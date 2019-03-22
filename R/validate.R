@@ -86,11 +86,6 @@ rt_valdata <- function(dir, group = c("nodes", "reaches"),
                        time_round_digits = -2,
                        flag_out_nodes = TRUE) {
 
-  rmnodes <- numeric(0)
-  if (flag_out_nodes) {
-    rmnodes <- flag_nodes(dir)
-  }
-
   group <- match.arg(group)
   rtdf <- rt_read(paste0(dir, "/", rtname), group = group,
                   keep_na_vars = keep_na_vars)
@@ -98,7 +93,12 @@ rt_valdata <- function(dir, group = c("nodes", "reaches"),
                   keep_na_vars = keep_na_vars)
 
   out <- rt_valdata_df(obs = rtdf, truth = gddf, time_round_digits = -2)
-  out <- out[!out[["node_id"]] %in% rmnodes, ]
+
+  if (group == "nodes" && flag_out_nodes) {
+    rmnodes <- flag_nodes(dir)
+    out <- out[!out[["node_id"]] %in% rmnodes, ]
+  }
+
   out
 }
 
