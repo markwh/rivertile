@@ -86,6 +86,25 @@ rt_val_nodeseries <- function(valdata, variable = "height", err_only = TRUE, ...
   out
 }
 
+#' Validation scatterplot
+#'
+#' @param valdata As returned by \code{rt_valdata()}
+#' @param variables Variables to plot
+#' @param xvar,yvar x- and y-axis variables
+#' @param ribbon1,ribbon2 Confidence-interval levels for 2 ribbon geoms.
+#'  Either or can be set to FALSE to disable plotting.
+#' @param plot if FALSE, just return the data used for plotting
+#' @export
+rt_val_scatter <- function(valdata, variables = c("height", "width", "slope"),
+                           xvar = "node_id", yvar = c("value", "err", "relerr"),
+                           ribbon1 = 0.6827, ribbon2 = 0.95,
+                           plot = TRUE) {
+
+
+
+}
+
+
 #' Returns a vector of worst-performing nodes (by error)
 #'
 #' @export
