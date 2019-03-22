@@ -91,17 +91,73 @@ rt_val_nodeseries <- function(valdata, variable = "height", err_only = TRUE, ...
 #' @param valdata As returned by \code{rt_valdata()}
 #' @param variables Variables to plot
 #' @param xvar,yvar x- and y-axis variables
-#' @param ribbon1,ribbon2 Confidence-interval levels for 2 ribbon geoms.
+#' @param ci1,ci2 Confidence-interval levels for 2 ribbon geoms.
 #'  Either or can be set to FALSE to disable plotting.
 #' @param plot if FALSE, just return the data used for plotting
 #' @export
 rt_val_scatter <- function(valdata, variables = c("height", "width", "slope"),
-                           xvar = "node_id", yvar = c("value", "err", "relerr"),
-                           ribbon1 = 0.6827, ribbon2 = 0.95,
+                           xvar = "id", yvar = c("value", "err", "relerr"),
+                           ci1 = 0.6827, ci2 = 0.95,
                            plot = TRUE) {
+  varnames <- c(value = "pixc_val", err = "pixc_err", relerr = "rel_err")
+  yvar <- match.arg(yvar)
+  yvarname <- yvar # for plot axis label
+  yvar <- varnames[yvar]
 
+  if (xvar == "id") xvar <- ifelse(is.null(valdata$node_id),
+                                   "reach_id", "node_id")
+  plotdata <- valdata %>%
+    dplyr::filter(variable %in% variables) %>%
+    dplyr::mutate(rel_err = pixc_err / sigma_est)
 
+  # Manually add x and y axis variables based on inputs
+  plotdata[["xval"]] <- plotdata[[xvar]]
+  plotdata[["yval"]] <- plotdata[[yvar]]
 
+  if (yvar == "pixc_val") {
+    plotdata[["ymiddle"]] <- plotdata[["gdem_val"]]
+  } else {plotdata[["ymiddle"]] <- 0}
+  if (yvar == "rel_err") {
+    plotdata$ysigma <- 1
+  } else {plotdata$ysigma <- plotdata$sigma_est}
+
+  # Sigma multipliers for confidence intervals
+  if (ci1 > 0) {
+    stopifnot(ci1 < 1)
+    sigmult1 <- qnorm((1 + ci1) / 2)
+    plotdata <- plotdata %>%
+      mutate(ci1_lwr = ymiddle - sigmult1 * ysigma,
+             ci1_upr = ymiddle + sigmult1 * ysigma)
+  }
+  if (ci2 > 0) {
+    stopifnot(ci2 < 1)
+    sigmult2 <- qnorm((1 + ci2) / 2)
+    plotdata <- plotdata %>%
+      mutate(ci2_lwr = ymiddle - sigmult2 * ysigma,
+             ci2_upr = ymiddle + sigmult2 * ysigma)
+  }
+
+  # Return the data or build the plot
+  if (!plot) return(plotdata)
+
+  out <- ggplot(plotdata, aes(x = xval))
+
+  # Add ribbons
+  if (ci1 > 0) {
+    out <- out + geom_ribbon(aes(ymin = ci2_lwr, ymax = ci2_upr),
+                             fill = "pink")
+  }
+  if (ci2 > 0) {
+    out <- out + geom_ribbon(aes(ymin = ci1_lwr, ymax = ci1_upr),
+                             fill = "#7780ff")
+  }
+
+  # Add points, wrap variables, label
+  out <- out + geom_point(aes(y = yval)) +
+    facet_wrap(~variable, scales = "free_y") +
+    ylab(yvarname) + xlab(xvar)
+
+  out
 }
 
 
