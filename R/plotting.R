@@ -154,7 +154,7 @@ rt_val_scatter <- function(valdata, variables = c("height", "width", "slope"),
 
   # Add points, wrap variables, label
   out <- out + geom_point(aes(y = yval)) +
-    facet_wrap(~variable, scales = "free_y") +
+    facet_wrap(~variable, scales = "free") +
     ylab(yvarname) + xlab(xvar)
 
   out
