@@ -151,7 +151,7 @@ gdem_read <- function(ncfile) {
   waterpix <- which(!is.na(ltype) & ltype == 1, arr.ind = TRUE)
 
   lats <- ncvar_ss(pixc_nc, "latitude", inds = waterpix)
-  lons <- ncvar_get(pixc_nc, "longitude", inds = waterpix)
+  lons <- ncvar_ss(pixc_nc, "longitude", inds = waterpix)
 
   out <- data.frame(latitude = lats, longitude = lons)
   out <- adjust_longitude(out)
