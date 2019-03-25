@@ -9,6 +9,7 @@
 #' @param varid passed to \code{ncvar_get}
 #' @param inds Vector or matrix giving indices for which the variable value is desired.
 #'
+#' @importFrom stats df dnorm pchisq qnorm setNames
 #' @export
 ncvar_ss <- function(nc, varid=NA, inds) {
   if (length(dim(inds)) > 2) stop("dimensionality > 2 not supported.")
@@ -142,6 +143,10 @@ pixcvec_read <- function(ncfile, keep_na_vars = FALSE) {
   outvals_df
 }
 
+#' Read a gdem netcdf
+#'
+#' @param ncfile gdem netcdf file
+#'
 #' @export
 gdem_read <- function(ncfile) {
   pixc_nc <- nc_open(ncfile)
@@ -162,7 +167,8 @@ gdem_read <- function(ncfile) {
 #'
 #' @param ncfile a pixel_cloud netcdf file
 #' @param group Which group to get data from: "pixel_cloud", "tvp", or "noise"
-#' @param latlim
+#' @param latlim,lonlim Limits of latitude and longitude, as length-2 vectors
+#' @param keep_na_vars Keep variables with nothing but missing values?
 #'
 #' @export
 pixc_read <- function(ncfile, group = c("pixel_cloud", "tvp", "noise"),
@@ -239,3 +245,4 @@ priordb_read <- function(ncfile, group = c("reaches", "nodes", "centerlines"),
   }
   outvals_df
 }
+

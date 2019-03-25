@@ -12,7 +12,9 @@ pixc_read(ncfile, group = c("pixel_cloud", "tvp", "noise"),
 
 \item{group}{Which group to get data from: "pixel_cloud", "tvp", or "noise"}
 
-\item{latlim}{}
+\item{latlim, lonlim}{Limits of latitude and longitude, as length-2 vectors}
+
+\item{keep_na_vars}{Keep variables with nothing but missing values?}
 }
 \description{
 Read data from a pixel_cloud netcdf file

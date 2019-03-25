@@ -21,6 +21,8 @@ rt_valdata(dir, group = c("nodes", "reaches"), rtname = "rt.nc",
 
 \item{time_round_digits}{how many digits to round time (secondes) to
 consider equal between gdem pixc and "real" pixc}
+
+\item{flag_out_nodes}{Automatically flag and remove nodes with ambiguous truth?}
 }
 \description{
 Get a validation dataset from a set of RiverObs runs

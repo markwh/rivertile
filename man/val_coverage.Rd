@@ -10,6 +10,8 @@ val_coverage(valdata, ci = c(68, 90, 95, 99), debias = FALSE)
 \item{valdata}{as returned by \code{rt_valdata()}}
 
 \item{ci}{Which confidence levels to validate?}
+
+\item{debias}{Remove bias error component before validating?}
 }
 \description{
 Table of coverage for various (normal) confidence intervals.

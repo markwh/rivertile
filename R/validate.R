@@ -77,6 +77,8 @@ rt_valdata_df <- function(obs, truth, time_round_digits = -2) {
 #' @param keep_na_vars Keep variables that only contain missing values?
 #' @param time_round_digits how many digits to round time (secondes) to
 #'  consider equal between gdem pixc and "real" pixc
+#' @param flag_out_nodes Automatically flag and remove nodes with ambiguous truth?
+#'
 #' @importFrom dplyr left_join
 #' @importFrom tidyr gather
 #' @export
@@ -128,6 +130,7 @@ flag_nodes <- function(dir, gdem1 = "rt_gdem.nc", gdem2 = "rt_gdem_dil2.nc",
 #'
 #' @param valdata as returned by \code{rt_valdata()}
 #' @param ci Which confidence levels to validate?
+#' @param debias Remove bias error component before validating?
 #'
 #' @export
 val_coverage <- function(valdata, ci = c(68, 90, 95, 99), debias = FALSE) {
@@ -149,4 +152,6 @@ val_coverage <- function(valdata, ci = c(68, 90, 95, 99), debias = FALSE) {
 
   out
 }
+
+
 

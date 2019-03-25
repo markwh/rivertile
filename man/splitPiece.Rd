@@ -6,6 +6,15 @@
 \usage{
 splitPiece(strvec, split, piece, ...)
 }
+\arguments{
+\item{strvec}{Character vector}
+
+\item{split}{Character to split by}
+
+\item{piece}{of split element to keep (numeric)}
+
+\item{...}{Passed to \code{strsplit()}}
+}
 \description{
 Copied from markstats package
 }

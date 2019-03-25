@@ -8,6 +8,8 @@ val_map_node(dir, nodes = badnodes(rt_valdata(dir)), pcv1 = "pcv.nc",
   pcv2 = "pcv_gdem.nc", maxpixels = 1000, leaflet = TRUE, ...)
 }
 \arguments{
+\item{dir}{A directory containing rivertile output.}
+
 \item{nodes}{A vector of node_id's, defaults to worst nodes using \code{badnodes()}}
 
 \item{pcv1}{Name of first pixcvec netcdf}
@@ -19,8 +21,6 @@ val_map_node(dir, nodes = badnodes(rt_valdata(dir)), pcv1 = "pcv.nc",
 \item{leaflet}{Use interactive leaflet plot? Otherwise uses ggplot.}
 
 \item{...}{Passed to \code{rt_valdata}}
-
-\item{valdata}{data.frame as returned by \code{rt_valdata()}}
 }
 \description{
 Map a given number of nodes' pixcvec locations--gdem versus rivertile
