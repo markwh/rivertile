@@ -248,3 +248,65 @@ val_map_node <- function(dir, nodes = badnodes(rt_valdata(dir)),
   out
 }
 
+
+
+# Area plot ---------------------------------------------------------------
+
+#' Join pixcvec to pixel cloud
+#'
+#' @param dir Directory containing pixel_cloud netcdfs
+#' @param pcvname,pixcname Names of pixcvec and pixel cloud netcdf files
+#' @export
+join_pixc <- function(dir, pcvname = "pcv.nc",
+                      pixcname = "pixel_cloud.nc") {
+
+  pcvdf <- pixcvec_read(path(dir, pcvname))
+  pixcdf <- pixc_read(path(dir, pixcname)) %>%
+    inner_join(pcvdf, by = c("azimuth_index", "range_index"))
+  pixcdf
+}
+
+#' Plot the area computation for a node
+#'
+#' @param pixc_joined A joined pixc data frame, as returned by \code{join_pixc()}
+#' @param nodes Vector giving indices of nodes to plot
+#' @param node_truth Optional truth data, as returned by \code{rt_read()}
+#' @param plot if FALSE, return the plot data but don't construct the ggplot
+#' @export
+plot_area <- function(pixc_joined, nodes, node_truth = NULL, plot = TRUE) {
+  sumrydf <- pixc_joined %>%
+    filter(node_index %in% nodes) %>%
+    group_by(node_index) %>%
+    arrange(desc(water_frac)) %>%
+    mutate(cum_area = cumsum(pixel_area),
+           area_lag = dplyr::lag(cum_area, default = 0),
+           classification = as.factor(classification)) %>%
+    ungroup()
+
+  if (!is.null(node_truth)) {
+    joindf <- node_truth %>%
+      transmute(reach_index = reach_id, node_index = node_id,
+                true_area = area_total)
+    sumrydf <- sumrydf %>%
+      left_join(joindf, by = c("node_index", "reach_index"))
+  }
+
+  if (!plot) return(sumrydf)
+
+  out <- ggplot(sumrydf)
+
+  out <- out +
+    geom_rect(aes(xmin = area_lag, xmax = cum_area,
+                  ymin = 0, ymax = water_frac, fill = classification)) +
+    xlab("Cumulative Pixel Area (m^2)") + ylab("Pixel Water Fraction") +
+    facet_wrap(~node_index, scales = "free_x")
+
+  # Add gdem truth
+  if (!is.null(node_truth)) {
+    out <- out +
+      geom_rect(aes(xmin = 0, ymin = 0, xmax = true_area, ymax = 1),
+                fill = NA, color = "gray30", linetype = 2)
+  }
+
+  out
+}
