@@ -97,20 +97,27 @@ rt_read <- function(ncfile, group = c("nodes", "reaches"),
   on.exit(nc_close(rt_nc))
 
   grepstr <- sprintf("^%s/", group)
-
   grpvars <- names(rt_nc$var)[grepl(grepstr, names(rt_nc$var))]
   grpnames <- splitPiece(grpvars, "/", 2, fixed = TRUE)
 
-  outvals_list <- map(grpvars, ~as.vector(ncvar_get(rt_nc, .))) %>%
+  # Smartly vectorize arrays. If already, vector-like, use as.vector.
+  # Otherwise make a data.frame.
+  vecfun <- function(x) {
+    if (length(dim(x)) < 2) return(as.vector(x))
+    if (length(dim(x)) == 2) return(as.data.frame(t(x)))
+    stop("Too many dimensions")
+  }
+
+  outvals_list <- map(grpvars, ~vecfun(ncvar_get(rt_nc, .))) %>%
     setNames(grpnames)
 
-  outvals_df <- as.data.frame(outvals_list)
+  outvals_df <- unnest(as.data.frame(outvals_list))
 
   # Comply with -180:180 convention used by RiverObs
   outvals_df <- adjust_longitude(outvals_df)
 
   if (! keep_na_vars) {
-    nacols <- map_lgl(outvals_list, ~sum(!is.na(.)) == 0)
+    nacols <- map_lgl(outvals_df, ~sum(!is.na(.)) == 0)
     outvals_df <- outvals_df[!nacols]
   }
   outvals_df
