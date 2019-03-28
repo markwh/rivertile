@@ -275,7 +275,7 @@ join_pixc <- function(dir, pcvname = "pcv.nc",
 #' @export
 plot_area <- function(pixc_joined, nodes, node_truth = NULL, plot = TRUE) {
   sumrydf <- pixc_joined %>%
-    filter(node_index %in% nodes) %>%
+    dplyr::filter(node_index %in% nodes) %>%
     group_by(node_index) %>%
     arrange(desc(water_frac)) %>%
     mutate(cum_area = cumsum(pixel_area),
@@ -309,4 +309,93 @@ plot_area <- function(pixc_joined, nodes, node_truth = NULL, plot = TRUE) {
   }
 
   out
+}
+
+
+#' Cumulative relative error for reaches
+#'
+#' Plots cumulative relative error against node index, sorted by
+#'  node-level relative error magnitude.
+#'
+#' @param valdf As returned by \code{rt_valdata()}
+#' @param reach_ids Vector of \code{reach_id}s to include, or "all"
+#' @param variables Vector of variables to include, or "all"
+#' @param desc If TRUE, sort x-axis by descending node-level relative error
+#' @export
+cumerr_plot <- function(valdf, reach_ids = "all",
+                        variables = c("height", "width", "area_total"),
+                        desc = FALSE) {
+
+  if (length(reach_ids) == 1 && reach_ids == "all")
+    reach_ids <- unique(valdf$reach_id)
+  if (length(variables) == 1 && variables == "all")
+    variables <- unique(valdf$variable)
+
+  rankfun <- function(x) if (desc) -x else x
+
+  plotdf <- valdf %>%
+    dplyr::filter(reach_id %in% reach_ids,
+                  variable %in% variables) %>%
+    mutate(reach_id = as.factor(reach_id)) %>%
+    group_by(variable, reach_id) %>%
+    mutate(relerr = pixc_err / sigma_est) %>%
+    arrange(rankfun(relerr)) %>%
+    mutate(cum_err = cumsum(pixc_err),
+           cum_sigma = sqrt(cumsum(sigma_est^2)),
+           cum_relerr = cum_err / cum_sigma,
+           relerr_rank = rank(rankfun(relerr))) %>%
+    ungroup()
+
+  ggplot(plotdf, aes(x = relerr_rank)) +
+    geom_line(aes(y = cum_relerr, color = reach_id, group = reach_id)) +
+    facet_wrap(~variable, scales = "free")
+}
+
+
+#' Leave-one-out relative error for reaches
+#'
+#' Plots total relative error against nodes, excluding that node from
+#'  the calculation of reach-level relative error.
+#'
+#' @param valdf As returned by \code{rt_valdata()}
+#' @param reach_ids Vector of \code{reach_id}s to include, or "all"
+#' @param variables Vector of variables to include, or "all"
+#' @param sort How to sort the x-axis? Choices are: \code{id} for node_id,
+#'  or \code{relerr} for relative error.
+#' @export
+looerr_plot <- function(valdf, reach_ids = "all",
+                        variables = c("height", "width", "area_total"),
+                        sort = c("id", "relerr")) {
+
+  sort <- match.arg(sort)
+
+  if (length(reach_ids) == 1 && reach_ids == "all")
+    reach_ids <- unique(valdf$reach_id)
+  if (length(variables) == 1 && variables == "all")
+    variables <- unique(valdf$variable)
+
+
+  loosum <- function(x, na.rm = FALSE) sum(x, na.rm = na.rm) - x
+
+  plotdf0 <- valdf %>%
+    dplyr::filter(reach_id %in% reach_ids,
+                  variable %in% variables) %>%
+    mutate(reach_id = as.factor(reach_id),
+           relerr = pixc_err / sigma_est,
+           ranks = if (sort == "id") rank(node_id)
+                     else rank(relerr))
+
+  plotdf <- plotdf0 %>%
+    group_by(variable, reach_id) %>%
+    arrange(ranks) %>%
+    mutate(cum_err = loosum(pixc_err),
+           cum_sigma = sqrt(loosum(sigma_est^2)),
+           cum_relerr = cum_err / cum_sigma,
+           xval = rank(ranks),
+           node_ind = node_id - min(node_id)) %>%
+    ungroup()
+
+  ggplot(plotdf, aes(x = xval)) +
+    geom_line(aes(y = cum_relerr, color = reach_id, group = reach_id)) +
+    facet_wrap(~variable, scales = "free")
 }
