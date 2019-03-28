@@ -34,6 +34,7 @@ reach_height_lm <- function(node_h, node_h_u, node_x, loc_offset,
 #'
 #' @param nodedata Must have additional columns from \code{add_nodelen()}
 #' @importFrom stats median
+#' @importFrom rlang .data
 #' @export
 reach_agg <- function(nodedata) {
 
@@ -56,16 +57,16 @@ reach_agg <- function(nodedata) {
   reach_slopes_u <- dplyr::filter(hxcoef, param == "slope")$std * 1e6
 
   nd_agg <- nodedata %>%
-    group_by(reach_id) %>%
-    summarize(time = median(time), time_tai = median(time_tai),
-              area = sum(area_total),
-              area_u = sqrt(sum(area_tot_u^2)),
-              width = area / sum(nodelen),
-              width_u = area_u / sum(nodelen)) %>%
-    mutate(height = reach_heights,
-           height_u = reach_heights_u,
-           slope = reach_slopes,
-           slope_u = reach_slopes_u) %>%
+    group_by(.data$reach_id) %>%
+    summarize(time = median(.data$time), time_tai = median(.data$time_tai),
+              area = sum(.data$area_total),
+              area_u = sqrt(sum(.data$area_tot_u^2)),
+              width = area / sum(.data$nodelen),
+              width_u = area_u / sum(.data$nodelen)) %>%
+    mutate(height = .data$reach_heights,
+           height_u = .data$reach_heights_u,
+           slope = .data$reach_slopes,
+           slope_u = .data$reach_slopes_u) %>%
     rename(area_total = area, area_tot_u = area_u)
 
   nd_agg

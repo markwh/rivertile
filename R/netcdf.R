@@ -111,7 +111,7 @@ rt_read <- function(ncfile, group = c("nodes", "reaches"),
   outvals_list <- map(grpvars, ~vecfun(ncvar_get(rt_nc, .))) %>%
     setNames(grpnames)
 
-  outvals_df <- unnest(as.data.frame(outvals_list))
+  outvals_df <- tidyr::unnest(as.data.frame(outvals_list))
 
   # Comply with -180:180 convention used by RiverObs
   outvals_df <- adjust_longitude(outvals_df)

@@ -229,12 +229,14 @@ val_map_node <- function(dir, nodes = badnodes(rt_valdata(dir)),
   }
 
   if (leaflet) {
-    out <- leaflet() %>%
-      addTiles() %>%
-      addCircleMarkers(data = pcvdata1, lng = ~lon, lat = ~lat,
+    if (!requireNamespace("leaflet", quietly = TRUE))
+      stop("The `leaflet` package is required for this command. Please install it.")
+    out <- leaflet::leaflet() %>%
+      leaflet::addTiles() %>%
+      leaflet::addCircleMarkers(data = pcvdata1, lng = ~lon, lat = ~lat,
                        radius = 2, color = "blue",
                        popup = ~paste0("node: ", node_index)) %>%
-      addCircleMarkers(data = pcvdata2, lng = ~lon, lat = ~lat,
+      leaflet::addCircleMarkers(data = pcvdata2, lng = ~lon, lat = ~lat,
                        radius = 2, color = "red")
   } else {
     bbox <- ggmap::make_bbox(pcvdata1$lon, pcvdata1$lat)
