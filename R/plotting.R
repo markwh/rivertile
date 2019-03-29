@@ -275,7 +275,7 @@ join_pixc <- function(dir, pcvname = "pcv.nc",
 #' @param node_truth Optional truth data, as returned by \code{rt_read()}
 #' @param plot if FALSE, return the plot data but don't construct the ggplot
 #' @export
-plot_area <- function(pixc_joined, nodes, node_truth = NULL, plot = TRUE) {
+nodearea_plot <- function(pixc_joined, nodes, node_truth = NULL, plot = TRUE) {
   sumrydf <- pixc_joined %>%
     dplyr::filter(node_index %in% nodes) %>%
     group_by(node_index) %>%
@@ -323,10 +323,12 @@ plot_area <- function(pixc_joined, nodes, node_truth = NULL, plot = TRUE) {
 #' @param reach_ids Vector of \code{reach_id}s to include, or "all"
 #' @param variables Vector of variables to include, or "all"
 #' @param desc If TRUE, sort x-axis by descending node-level relative error
+#' @param plot if FALSE, return the data used to plot, but do not generate the plot.
+#'
 #' @export
 cumerr_plot <- function(valdf, reach_ids = "all",
                         variables = c("height", "width", "area_total"),
-                        desc = FALSE) {
+                        desc = FALSE, plot = TRUE) {
 
   if (length(reach_ids) == 1 && reach_ids == "all")
     reach_ids <- unique(valdf$reach_id)
@@ -364,10 +366,11 @@ cumerr_plot <- function(valdf, reach_ids = "all",
 #' @param variables Vector of variables to include, or "all"
 #' @param sort How to sort the x-axis? Choices are: \code{id} for node_id,
 #'  or \code{relerr} for relative error.
+#' @param plot if FALSE, return the data used to plot, but do not generate the plot.
 #' @export
 looerr_plot <- function(valdf, reach_ids = "all",
                         variables = c("height", "width", "area_total"),
-                        sort = c("id", "relerr")) {
+                        sort = c("id", "relerr"), plot = TRUE) {
 
   sort <- match.arg(sort)
 

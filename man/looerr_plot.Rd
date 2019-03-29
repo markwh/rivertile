@@ -5,7 +5,7 @@
 \title{Leave-one-out relative error for reaches}
 \usage{
 looerr_plot(valdf, reach_ids = "all", variables = c("height", "width",
-  "area_total"), sort = c("id", "relerr"))
+  "area_total"), sort = c("id", "relerr"), plot = TRUE)
 }
 \arguments{
 \item{valdf}{As returned by \code{rt_valdata()}}
@@ -16,6 +16,8 @@ looerr_plot(valdf, reach_ids = "all", variables = c("height", "width",
 
 \item{sort}{How to sort the x-axis? Choices are: \code{id} for node_id,
 or \code{relerr} for relative error.}
+
+\item{plot}{if FALSE, return the data used to plot, but do not generate the plot.}
 }
 \description{
 Plots total relative error against nodes, excluding that node from

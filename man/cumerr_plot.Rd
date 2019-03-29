@@ -5,7 +5,7 @@
 \title{Cumulative relative error for reaches}
 \usage{
 cumerr_plot(valdf, reach_ids = "all", variables = c("height", "width",
-  "area_total"), desc = FALSE)
+  "area_total"), desc = FALSE, plot = TRUE)
 }
 \arguments{
 \item{valdf}{As returned by \code{rt_valdata()}}
@@ -15,6 +15,8 @@ cumerr_plot(valdf, reach_ids = "all", variables = c("height", "width",
 \item{variables}{Vector of variables to include, or "all"}
 
 \item{desc}{If TRUE, sort x-axis by descending node-level relative error}
+
+\item{plot}{if FALSE, return the data used to plot, but do not generate the plot.}
 }
 \description{
 Plots cumulative relative error against node index, sorted by
