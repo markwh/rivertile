@@ -97,14 +97,35 @@ rt_valdata <- function(dir, group = c("nodes", "reaches"),
   out <- rt_valdata_df(obs = rtdf, truth = gddf, time_round_digits = -2)
 
   if (group == "nodes" && flag_out_nodes) {
-    rmnodes <- flag_nodes(dir)
+    rmnodes1 <- ambiguous_nodes(dir)
+    rmnodes2 <- mismatch_nodes(rtdf, gddf)
+    rmnodes <- c(rmnodes1, rmnodes2)
+
     out <- out[!out[["node_id"]] %in% rmnodes, ]
   }
 
   out
 }
 
-#' Flag nodes with questionable / unstable gdem truth
+
+#' Flag nodes that have either total or potential partial mismatch between gdem and pixc.
+#'
+#' @inheritParams rt_valdata_df
+#' @export
+mismatch_nodes <- function(obs, truth) {
+
+  obsnodes <- unique(obs$node_id)
+  truthnodes <- unique(truth$node_id)
+  allnodes <- union(obsnodes, truthnodes)
+  commonnodes <- intersect(obsnodes, truthnodes)
+
+  badnodes1 <- setdiff(allnodes, commonnodes) # full mismatch (missing from one or other)
+  badnodes2 <- c(min(commonnodes), max(commonnodes)) # potential partial mismatch (bookends)
+  out <- sort(c(badnodes1, badnodes2))
+  out
+}
+
+#' Get nodes with questionable / unstable gdem truth
 #'
 #' Based on differences in "dilated" and non-dilated gdem.
 #'
@@ -113,7 +134,7 @@ rt_valdata <- function(dir, group = c("nodes", "reaches"),
 #' @param thresh Threshold for relative difference in widths, defaults to 0.15.
 #'
 #' @export
-flag_nodes <- function(dir, gdem1 = "rt_gdem.nc", gdem2 = "rt_gdem_dil2.nc",
+ambiguous_nodes <- function(dir, gdem1 = "rt_gdem.nc", gdem2 = "rt_gdem_dil2.nc",
                        thresh = 0.15) {
   valdata <- rt_valdata(dir, group = "nodes", rtname = gdem1, gdname = gdem2,
                         keep_na_vars = TRUE, flag_out_nodes = FALSE) %>%

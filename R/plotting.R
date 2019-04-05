@@ -279,7 +279,7 @@ nodearea_plot <- function(pixc_joined, nodes, node_truth = NULL, plot = TRUE) {
   sumrydf <- pixc_joined %>%
     dplyr::filter(node_index %in% nodes) %>%
     group_by(node_index) %>%
-    arrange(desc(water_frac)) %>%
+    dplyr::arrange(desc(water_frac)) %>%
     mutate(cum_area = cumsum(pixel_area),
            area_lag = dplyr::lag(cum_area, default = 0),
            classification = as.factor(classification)) %>%
