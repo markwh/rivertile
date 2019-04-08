@@ -5,7 +5,7 @@
 \title{Plot a histogram of errors, possibly scaled by uncertainty estimates}
 \usage{
 rt_val_hist(valdata, center = FALSE, scale = FALSE, curve = center &&
-  scale, vars = "all", ...)
+  scale, vars = "all", plot = TRUE, ...)
 }
 \arguments{
 \item{valdata}{data.frame as returned by code{rt_valdata()}}
@@ -18,6 +18,8 @@ rt_val_hist(valdata, center = FALSE, scale = FALSE, curve = center &&
 both \code{center} and \code{scale} are \code{TRUE}.}
 
 \item{vars}{Which variables to plot? Defaults to "all"}
+
+\item{plot}{if FALSE, return the data used to plot but do not create the plot}
 
 \item{...}{Passed to \code{rt_valdata()}}
 }

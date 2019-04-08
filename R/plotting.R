@@ -10,13 +10,14 @@
 #' @param curve Overlay a standard normal curve? This is the default if
 #'   both \code{center} and \code{scale} are \code{TRUE}.
 #' @param vars Which variables to plot? Defaults to "all"
+#' @param plot if FALSE, return the data used to plot but do not create the plot
 #' @param ... Passed to \code{rt_valdata()}
 #' @importFrom dplyr group_by ungroup
 #' @export
 
 rt_val_hist <- function(valdata, center = FALSE, scale = FALSE,
                         curve = center && scale,
-                        vars = "all",
+                        vars = "all", plot = TRUE,
                         ...) {
   # Currently only implemented for nodes
 
@@ -25,21 +26,23 @@ rt_val_hist <- function(valdata, center = FALSE, scale = FALSE,
       dplyr::filter(variable %in% vars)
   }
 
-  out <- valdata %>%
+  plotdf <- valdata %>%
     mutate(err = pixc_err) %>%
     group_by(variable)
 
-
+  # center and scale plot, if necessary
   if (center) {
-    out <- mutate(out, err = err - mean(err, na.rm = TRUE))
+    plotdf <- mutate(plotdf, err = err - mean(err, na.rm = TRUE))
   }
-
   if (scale) {
-    out <- mutate(out, err = err / sigma_est)
+    plotdf <- mutate(plotdf, err = err / sigma_est)
   }
 
-  out <- out %>%
-    ungroup() %>%
+  plotdf <- ungroup(plotdf)
+
+  if (!plot) return(plotdf)
+
+  out <- plotdf %>%
     ggplot(aes(x = err)) +
     geom_histogram(aes(y = ..density..), bins = 15) +
     facet_wrap(~variable, scales = "free")
