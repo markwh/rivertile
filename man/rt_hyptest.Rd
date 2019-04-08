@@ -4,12 +4,16 @@
 \alias{rt_hyptest}
 \title{Test uncertainty estimates against chi-square distribution}
 \usage{
-rt_hyptest(valdata, debias = TRUE)
+rt_hyptest(valdata, debias = FALSE, sides = 2, log.p = FALSE)
 }
 \arguments{
 \item{valdata}{A data.frame as returned by \code{rt_valdata()}}
 
-\item{debias}{Remove effect of bias? Defaults to TRUE}
+\item{debias}{Remove effect of bias? Defaults to FALSE}
+
+\item{sides}{1 for 1-sided, or 2 for 2-sided hypothesis test. If 1, test is on upper tail.}
+
+\item{log.p}{Report p-value as log-transformed value?}
 }
 \description{
 Test uncertainty estimates against chi-square distribution
