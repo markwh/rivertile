@@ -51,6 +51,7 @@ reach_agg <- function(nodedata) {
     map(~mutate(., param = c("intercept", "slope"))) %>%
     bind_rows(.id = "reach_id")
 
+  #  values and uncertainties come from param estimates and standard errors
   reach_heights <- dplyr::filter(hxcoef, param == "intercept")$est
   reach_heights_u <- dplyr::filter(hxcoef, param == "intercept")$std
   reach_slopes <- dplyr::filter(hxcoef, param == "slope")$est * 1e6
@@ -63,11 +64,12 @@ reach_agg <- function(nodedata) {
               area_u = sqrt(sum(.data$area_tot_u^2)),
               width = area / sum(.data$nodelen),
               width_u = area_u / sum(.data$nodelen)) %>%
-    mutate(height = .data$reach_heights,
-           height_u = .data$reach_heights_u,
-           slope = .data$reach_slopes,
-           slope_u = .data$reach_slopes_u) %>%
+    mutate(height = reach_heights,
+           height_u = reach_heights_u,
+           slope = reach_slopes,
+           slope_u = reach_slopes_u) %>%
     rename(area_total = area, area_tot_u = area_u)
+
 
   nd_agg
 }
