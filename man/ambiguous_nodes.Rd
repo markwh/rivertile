@@ -5,7 +5,7 @@
 \title{Get nodes with questionable / unstable gdem truth}
 \usage{
 ambiguous_nodes(dir, gdem1 = "rt_gdem.nc", gdem2 = "rt_gdem_dil2.nc",
-  thresh = 0.15)
+  thresh = 0.15, plot = FALSE)
 }
 \arguments{
 \item{dir}{Directory containing gdem rivertile netcdfs}
@@ -13,6 +13,8 @@ ambiguous_nodes(dir, gdem1 = "rt_gdem.nc", gdem2 = "rt_gdem_dil2.nc",
 \item{gdem1, gdem2}{gdem rivertile netcdfs to compare}
 
 \item{thresh}{Threshold for relative difference in widths, defaults to 0.15.}
+
+\item{plot}{Show plot of gdem comparison with cutoff?}
 }
 \description{
 Based on differences in "dilated" and non-dilated gdem.

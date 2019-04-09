@@ -132,15 +132,23 @@ mismatch_nodes <- function(obs, truth) {
 #' @param dir Directory containing gdem rivertile netcdfs
 #' @param gdem1,gdem2 gdem rivertile netcdfs to compare
 #' @param thresh Threshold for relative difference in widths, defaults to 0.15.
+#' @param plot Show plot of gdem comparison with cutoff?
 #'
 #' @export
 ambiguous_nodes <- function(dir, gdem1 = "rt_gdem.nc", gdem2 = "rt_gdem_dil2.nc",
-                       thresh = 0.15) {
+                       thresh = 0.15, plot = FALSE) {
   valdata <- rt_valdata(dir, group = "nodes", rtname = gdem1, gdname = gdem2,
                         keep_na_vars = TRUE, flag_out_nodes = FALSE) %>%
     dplyr::select(reach_id, node_id, variable, pixc_val, gdem_val, pixc_err) %>%
     dplyr::filter(variable == "width") %>%
     dplyr::mutate(pct_diff = - pixc_err / gdem_val)
+
+  if (plot) {
+    plot(pct_diff ~ node_id, valdata)
+    abline(h = thresh, lty = 2)
+    text(pct_diff ~ node_id, dplyr::filter(valdata, pct_diff > thresh),
+         labels = node_id, adj = -0.2)
+  }
 
   out <- with(valdata, node_id[pct_diff > thresh])
   out

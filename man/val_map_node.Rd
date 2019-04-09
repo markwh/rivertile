@@ -5,7 +5,8 @@
 \title{Map a given number of nodes' pixcvec locations--gdem versus rivertile}
 \usage{
 val_map_node(dir, nodes = badnodes(rt_valdata(dir)), pcv1 = "pcv.nc",
-  pcv2 = "pcv_gdem.nc", maxpixels = 1000, leaflet = TRUE, ...)
+  pcv2 = "pcv_gdem.nc", pixc1 = "pixel_cloud.nc",
+  pixc2 = "fake_pixc.nc", maxpixels = 1000)
 }
 \arguments{
 \item{dir}{A directory containing rivertile output.}
@@ -19,8 +20,6 @@ val_map_node(dir, nodes = badnodes(rt_valdata(dir)), pcv1 = "pcv.nc",
 \item{maxpixels}{Maximum number of pixels to plot, as a random sample if necessary.}
 
 \item{leaflet}{Use interactive leaflet plot? Otherwise uses ggplot.}
-
-\item{...}{Passed to \code{rt_valdata}}
 }
 \description{
 Map a given number of nodes' pixcvec locations--gdem versus rivertile

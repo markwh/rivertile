@@ -107,8 +107,9 @@ rt_val_scatter <- function(valdata, variables = c("height", "width", "slope"),
   yvarname <- yvar # for plot axis label
   yvar <- varnames[yvar]
 
-  if (xvar == "id") xvar <- ifelse(is.null(valdata$node_id),
-                                   "reach_id", "node_id")
+  idvar <- ifelse(is.null(valdata$node_id), "reach_id", "node_id")
+  if (xvar == "id") xvar <- idvar
+
   plotdata <- valdata %>%
     dplyr::filter(variable %in% variables) %>%
     dplyr::mutate(rel_err = pixc_err / sigma_est)
@@ -116,6 +117,7 @@ rt_val_scatter <- function(valdata, variables = c("height", "width", "slope"),
   # Manually add x and y axis variables based on inputs
   plotdata[["xval"]] <- plotdata[[xvar]]
   plotdata[["yval"]] <- plotdata[[yvar]]
+  plotdata[["id"]] <- plotdata[[idvar]]
 
   if (yvar == "pixc_val") {
     plotdata[["ymiddle"]] <- plotdata[["gdem_val"]]
@@ -156,7 +158,7 @@ rt_val_scatter <- function(valdata, variables = c("height", "width", "slope"),
   }
 
   # Add points, wrap variables, label
-  out <- out + geom_point(aes(y = yval)) +
+  out <- out + geom_point(aes(y = yval, text = id)) +
     facet_wrap(~variable, scales = "free") +
     ylab(yvarname) + xlab(xvar)
 
@@ -187,19 +189,6 @@ badnodes <- function(valdata, variable = "width", n = 4,
   out
 }
 
-val_node_data <- function(dir, nodes = badnodes(rt_valdata(dir)),
-                          pcv1 = "pcv.nc", pcv2 = "pcv_gdem.nc") {
-  pcvdata1 <- pixcvec_read(path(dir, pcv1)) %>%
-    dplyr::filter(node_index %in% nodes) %>%
-    rename(lat = latitude_vectorproc, lon = longitude_vectorproc)
-  pcvdata2 <- pixcvec_read(path(dir, pcv2)) %>%
-    dplyr::filter(node_index %in% nodes) %>%
-    rename(lat = latitude_vectorproc, lon = longitude_vectorproc)
-
-  out <- list(pcv1 = pcvdata1, pcv2 = pcvdata2)
-  out
-}
-
 #' Map a given number of nodes' pixcvec locations--gdem versus rivertile
 #'
 #' @param dir A directory containing rivertile output.
@@ -208,47 +197,54 @@ val_node_data <- function(dir, nodes = badnodes(rt_valdata(dir)),
 #' @param pcv2 Name of second pixcvec netcdf
 #' @param maxpixels Maximum number of pixels to plot, as a random sample if necessary.
 #' @param leaflet Use interactive leaflet plot? Otherwise uses ggplot.
-#' @param ... Passed to \code{rt_valdata}
 #'
-#' @importFrom fs path
-#' @importFrom dplyr rename
 #'
 #' @export
 val_map_node <- function(dir, nodes = badnodes(rt_valdata(dir)),
                          pcv1 = "pcv.nc", pcv2 = "pcv_gdem.nc",
-                         maxpixels = 1000, leaflet = TRUE, ...) {
+                         pixc1 = "pixel_cloud.nc", pixc2 = "fake_pixc.nc",
+                         maxpixels = 1000) {
 
-  datalist <- val_node_data(dir, nodes, pcv1, pcv2)
-  pcvdata1 <- datalist[["pcv1"]]
-  pcvdata2 <- datalist[["pcv2"]]
+  if (!requireNamespace("leaflet", quietly = TRUE))
+    stop("The `leaflet` package is required for this function. Please install it.")
+
+
+  keepvars <- c("reach_index", "node_index", "latitude", "longitude",
+                "water_frac", "classification", "pixel_area")
+  pcvdata1 <- join_pixc(dir, pcvname = pcv1, pixcname = pixc1)[keepvars] %>%
+    dplyr::filter(node_index %in% nodes)
+  pcvdata2 <- join_pixc(dir, pcvname = pcv2, pixcname = pixc2)[keepvars] %>%
+    dplyr::filter(node_index %in% nodes)
 
   if (nrow(pcvdata1) > maxpixels) {
-    message("Subsampling pixcvec 1. Change using `maxpixels` argument.")
+    message(sprintf("Subsampling. Change using `maxpixels` argument to > %s.",
+                    nrow(pcvdata1)))
     pcvdata1 <- dplyr::sample_n(pcvdata1, maxpixels)
   }
   if (nrow(pcvdata2) > maxpixels) {
-    message("Subsampling pixcvec 2. Change using `maxpixels` argument.")
+    message(sprintf("Subsampling. Change using `maxpixels` argument to > %s.",
+                    nrow(pcvdata2)))
     pcvdata2 <- dplyr::sample_n(pcvdata2, maxpixels)
   }
 
-  if (leaflet) {
-    if (!requireNamespace("leaflet", quietly = TRUE))
-      stop("The `leaflet` package is required for this command. Please install it.")
-    out <- leaflet::leaflet() %>%
-      leaflet::addTiles() %>%
-      leaflet::addCircleMarkers(data = pcvdata1, lng = ~lon, lat = ~lat,
-                       radius = 2, color = "blue",
-                       popup = ~paste0("node: ", node_index)) %>%
-      leaflet::addCircleMarkers(data = pcvdata2, lng = ~lon, lat = ~lat,
-                       radius = 2, color = "red")
-  } else {
-    bbox <- ggmap::make_bbox(pcvdata1$lon, pcvdata1$lat)
-    satmap <- ggmap::get_map(location = bbox, maptype = "terrain", source = "google")
-    out <- ggmap(satmap) +
-      geom_point(data = pcvdata1, aes(x = lon, y = lat), color = "blue", size = 2) +
-      geom_point(data = pcvdata2, aes(x = lon, y = lat), color = "red", size = 2)
-    out
-  }
+  # color palette
+  classes <- c(1, 2, 3, 4, 22, 23, 24)
+  classlabs <- c("land", "land_near_water", "water_near_land", "open_water",
+                 "land_near_dark_water", "dark_water_edge", "dark_water")
+  classcolors <- RColorBrewer::brewer.pal(length(classes), "Set1")
+  classpal <- colorFactor(palette = classcolors, domain = classes)
+
+  out <- leaflet::leaflet() %>%
+    leaflet::addTiles() %>%
+    leaflet::addCircles(data = pcvdata1,
+                        lng = ~longitude, lat = ~latitude,
+                        radius = ~sqrt(pixel_area / pi),
+                        color = ~classpal(classification),
+                        stroke = FALSE, fillOpacity = 0.8) %>%
+    leaflet::addCircles(data = pcvdata2, lng = ~longitude, lat = ~latitude,
+                        radius = ~sqrt(pixel_area / pi), color = "red",
+                        stroke = FALSE, fillOpacity = 0.8) %>%
+    leaflet::addLegend(colors = classcolors, labels = classlabs)
 
   out
 }
@@ -261,6 +257,7 @@ val_map_node <- function(dir, nodes = badnodes(rt_valdata(dir)),
 #'
 #' @param dir Directory containing pixel_cloud netcdfs
 #' @param pcvname,pixcname Names of pixcvec and pixel cloud netcdf files
+#' @importFrom fs path
 #' @export
 join_pixc <- function(dir, pcvname = "pcv.nc",
                       pixcname = "pixel_cloud.nc") {
