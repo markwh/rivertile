@@ -13,13 +13,11 @@ val_map_node(dir, nodes = badnodes(rt_valdata(dir)), pcv1 = "pcv.nc",
 
 \item{nodes}{A vector of node_id's, defaults to worst nodes using \code{badnodes()}}
 
-\item{pcv1}{Name of first pixcvec netcdf}
+\item{pcv1, pcv2}{Name of pixcvec netcdfs}
 
-\item{pcv2}{Name of second pixcvec netcdf}
+\item{pixc1, pixc2}{Name of pixel cloud netcdfs}
 
 \item{maxpixels}{Maximum number of pixels to plot, as a random sample if necessary.}
-
-\item{leaflet}{Use interactive leaflet plot? Otherwise uses ggplot.}
 }
 \description{
 Map a given number of nodes' pixcvec locations--gdem versus rivertile

@@ -193,10 +193,9 @@ badnodes <- function(valdata, variable = "width", n = 4,
 #'
 #' @param dir A directory containing rivertile output.
 #' @param nodes A vector of node_id's, defaults to worst nodes using \code{badnodes()}
-#' @param pcv1 Name of first pixcvec netcdf
-#' @param pcv2 Name of second pixcvec netcdf
+#' @param pcv1,pcv2 Name of pixcvec netcdfs
+#' @param pixc1,pixc2 Name of pixel cloud netcdfs
 #' @param maxpixels Maximum number of pixels to plot, as a random sample if necessary.
-#' @param leaflet Use interactive leaflet plot? Otherwise uses ggplot.
 #'
 #'
 #' @export
