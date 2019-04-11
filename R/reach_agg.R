@@ -85,22 +85,32 @@ all_sequential <- function(node_ids) {
   isTRUE(all.equal(ids_adj, 1:length(ids_adj)))
 }
 
-#' Add node length and cumulative length (distance) downstream to node data
+#' Add loc_offset to node data
 #'
 #' @param nodedata,reachdata As returned by \code{rt_read()}
 #' @export
-add_nodelen <- function(nodedata, reachdata) {
+
+add_offset <- function(nodedata, reachdata) {
+  reachadjdf <- reachdata %>%
+    dplyr::select(reach_id, loc_offset)
+  # join to loc_offset from reachdata
+  out <- nodedata %>%
+    left_join(reachadjdf, by = "reach_id")
+
+  out
+}
+
+#' Add node length and cumulative length (distance) downstream to node data
+#'
+#' @param nodedata As returned by \code{rt_read()}
+#' @export
+add_nodelen <- function(nodedata) {
 
   nodeids <- nodedata$node_id
   if (!all_sequential(nodeids)) stop ("Gaps exist in node data")
 
-  # join to loc_offset from reachdata
-  reachadjdf <- reachdata %>%
-    dplyr::select(reach_id, loc_offset)
-
   out <- nodedata %>%
     arrange(node_id) %>%
-    left_join(reachadjdf, by = "reach_id") %>%
     mutate(nodelen = area_total / width,
            cumlen = cumsum(nodelen))
 

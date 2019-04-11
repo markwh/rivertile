@@ -4,10 +4,10 @@
 \alias{add_nodelen}
 \title{Add node length and cumulative length (distance) downstream to node data}
 \usage{
-add_nodelen(nodedata, reachdata)
+add_nodelen(nodedata)
 }
 \arguments{
-\item{nodedata, reachdata}{As returned by \code{rt_read()}}
+\item{nodedata}{As returned by \code{rt_read()}}
 }
 \description{
 Add node length and cumulative length (distance) downstream to node data

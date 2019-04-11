@@ -13,7 +13,7 @@
 #' @export
 rt_valdata_df <- function(obs, truth, time_round_digits = -2) {
   # ID variables for joining rivertile to gdem
-  idvars <- c("reach_id", "node_id", "time", "time_tai")
+  idvars <- c("reach_id", "node_id", "time", "time_tai", "nodelen", "cumlen")
   idvars <- intersect(names(obs), idvars)
 
   # time variables need to be rounded.
@@ -64,7 +64,9 @@ rt_valdata_df <- function(obs, truth, time_round_digits = -2) {
     left_join(truth_g, by = c(idvars, "variable")) %>%
     dplyr::mutate(pixc_err = pixc_val - gdem_val) %>%
     left_join(uncdf_g, by = c(idvars, "variable")) %>%
-    left_join(commondf, by = idvars)
+    left_join(commondf, by = idvars) %>%
+    group_by(variable)
+
   out
 }
 
@@ -94,13 +96,19 @@ rt_valdata <- function(dir, group = c("nodes", "reaches"),
   gddf <- rt_read(paste0(dir, "/", gdname), group = group,
                   keep_na_vars = keep_na_vars)
 
+  if (group == "nodes") {
+    rtdf <- add_nodelen(rtdf) # add nodelen, cumlen columns
+    gddf <- left_join(gddf,
+                      rtdf[, c("reach_id", "node_id", "nodelen", "cumlen")],
+                      by = c("reach_id", "node_id"))
+  }
+
   out <- rt_valdata_df(obs = rtdf, truth = gddf, time_round_digits = -2)
 
-  if (group == "nodes" && flag_out_nodes) {
+  if (group == "nodes" && flag_out_nodes) { # prune bad nodes
     rmnodes1 <- ambiguous_nodes(dir)
     rmnodes2 <- mismatch_nodes(rtdf, gddf)
     rmnodes <- c(rmnodes1, rmnodes2)
-
     out <- out[!out[["node_id"]] %in% rmnodes, ]
   }
 
