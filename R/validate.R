@@ -13,7 +13,7 @@
 #' @export
 rt_valdata_df <- function(obs, truth, time_round_digits = -2) {
   # ID variables for joining rivertile to gdem
-  idvars <- c("reach_id", "node_id", "time", "time_tai", "nodelen", "cumlen")
+  idvars <- c("reach_id", "node_id", "time", "time_tai")
   idvars <- intersect(names(obs), idvars)
 
   # time variables need to be rounded.
@@ -32,7 +32,7 @@ rt_valdata_df <- function(obs, truth, time_round_digits = -2) {
   commonvars_nod <- c(
     "area_of_ht", "node_dist", "xtrk_dist", "n_good_pix", "node_q",
     "solid_tide", "pole_tide", "load_tide", "dry_trop_c", "wet_trop_c",
-    "iono_c", "xover_cal_c", "p_dist_out"
+    "iono_c", "xover_cal_c", "p_dist_out", "nodelen", "cumlen", "loc_offset"
   )
   commonvars <- intersect(names(obs), c(commonvars_rch, commonvars_nod))
 
@@ -95,13 +95,6 @@ rt_valdata <- function(dir, group = c("nodes", "reaches"),
                   keep_na_vars = keep_na_vars)
   gddf <- rt_read(paste0(dir, "/", gdname), group = group,
                   keep_na_vars = keep_na_vars)
-
-  if (group == "nodes") {
-    rtdf <- add_nodelen(rtdf) # add nodelen, cumlen columns
-    gddf <- left_join(gddf,
-                      rtdf[, c("reach_id", "node_id", "nodelen", "cumlen")],
-                      by = c("reach_id", "node_id"))
-  }
 
   out <- rt_valdata_df(obs = rtdf, truth = gddf, time_round_digits = -2)
 

@@ -263,7 +263,8 @@ join_pixc <- function(dir, pcvname = "pcv.nc",
 
   pcvdf <- pixcvec_read(path(dir, pcvname))
   pixcdf <- pixc_read(path(dir, pixcname)) %>%
-    inner_join(pcvdf, by = c("azimuth_index", "range_index"))
+    inner_join(pcvdf, by = c("azimuth_index", "range_index")) %>%
+    dplyr::mutate(pixel_id = 1:nrow(.))
   pixcdf
 }
 
@@ -280,9 +281,9 @@ nodearea_plot <- function(pixc_joined, nodes, node_truth = NULL, plot = TRUE) {
     group_by(node_index) %>%
     dplyr::arrange(desc(water_frac)) %>%
     mutate(cum_area = cumsum(pixel_area),
-           area_lag = dplyr::lag(cum_area, default = 0),
-           classification = as.factor(classification)) %>%
-    ungroup()
+           area_lag = dplyr::lag(cum_area, default = 0)) %>%
+    ungroup() %>%
+    mutate(classification = as.factor(classification))
 
   if (!is.null(node_truth)) {
     joindf <- node_truth %>%
@@ -298,7 +299,8 @@ nodearea_plot <- function(pixc_joined, nodes, node_truth = NULL, plot = TRUE) {
 
   out <- out +
     geom_rect(aes(xmin = area_lag, xmax = cum_area,
-                  ymin = 0, ymax = water_frac, fill = classification)) +
+                    ymin = 0, ymax = water_frac, fill = classification,
+                    text = pixel_id)) +
     xlab("Cumulative Pixel Area (m^2)") + ylab("Pixel Water Fraction") +
     facet_wrap(~node_index, scales = "free_x")
 

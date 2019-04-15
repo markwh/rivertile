@@ -100,7 +100,7 @@ rt_read <- function(ncfile, group = c("nodes", "reaches"),
   grpvars <- names(rt_nc$var)[grepl(grepstr, names(rt_nc$var))]
   grpnames <- splitPiece(grpvars, "/", 2, fixed = TRUE)
 
-  # Smartly vectorize arrays. If already, vector-like, use as.vector.
+  # Smartly vectorize arrays. If already vector-like, use as.vector.
   # Otherwise make a data.frame.
   vecfun <- function(x) {
     if (length(dim(x)) < 2) return(as.vector(x))

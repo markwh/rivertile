@@ -17,6 +17,7 @@
 #' @export
 reach_height_lm <- function(node_h, node_h_u, node_x, loc_offset,
                             weight = TRUE) {
+  # browser()
   weights <- 1 / (node_h_u^2)
   if (!weight) weights <- NULL
 
@@ -32,21 +33,23 @@ reach_height_lm <- function(node_h, node_h_u, node_x, loc_offset,
 #' A slightly imprecise reproduction of RiverObs reach aggregation for a handful of
 #'  variables.
 #'
-#' @param nodedata Must have additional columns from \code{add_nodelen()}
+#' @param nodedata Must have additional columns from \code{add_nodelen(), add_offset()}
+#' @param weight Use weighted regression based on height uncertainty?
 #' @importFrom stats median
 #' @importFrom rlang .data
 #' @export
-reach_agg <- function(nodedata) {
+reach_agg <- function(nodedata, weight = TRUE) {
 
   if (is.null(nodedata$cumlen) || is.null(nodedata$nodelen)) {
     stop("nodedata must have the following precomputed: nodelen, cumlen, loc_offset")
   }
-
   # Make linear models for height, slope
   hxmods <- split(nodedata, f = nodedata$reach_id) %>%
     purrr::map(~reach_height_lm(node_h = .$height, node_h_u = .$height2_u,
-                                node_x = .$cumlen, loc_offset = .$loc_offset, weight = TRUE))
-  hxcoef <- map(hxmods, ~as.data.frame(summary(.)$coefficients, row.names = FALSE)) %>%
+                                node_x = .$cumlen, loc_offset = .$loc_offset,
+                                weight = weight))
+  hxcoef <- map(hxmods, ~as.data.frame(summary(.)$coefficients,
+                                       row.names = FALSE)) %>%
     map(~setNames(.[, 1:2], c("est", "std"))) %>%
     map(~mutate(., param = c("intercept", "slope"))) %>%
     bind_rows(.id = "reach_id")
