@@ -4,10 +4,12 @@
 \alias{reach_agg}
 \title{Aggregate node-level data to reach-scale}
 \usage{
-reach_agg(nodedata)
+reach_agg(nodedata, weight = TRUE)
 }
 \arguments{
-\item{nodedata}{Must have additional columns from \code{add_nodelen()}}
+\item{nodedata}{Must have additional columns from \code{add_nodelen(), add_offset()}}
+
+\item{weight}{Use weighted regression based on height uncertainty?}
 }
 \description{
 A slightly imprecise reproduction of RiverObs reach aggregation for a handful of
