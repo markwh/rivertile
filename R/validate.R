@@ -64,8 +64,7 @@ rt_valdata_df <- function(obs, truth, time_round_digits = -2) {
     left_join(truth_g, by = c(idvars, "variable")) %>%
     dplyr::mutate(pixc_err = pixc_val - gdem_val) %>%
     left_join(uncdf_g, by = c(idvars, "variable")) %>%
-    left_join(commondf, by = idvars) %>%
-    group_by(variable)
+    left_join(commondf, by = idvars)
 
   out
 }
