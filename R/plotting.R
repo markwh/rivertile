@@ -257,15 +257,22 @@ val_map_node <- function(dir, nodes = badnodes(rt_valdata(dir)),
 #' @param dir Directory containing pixel_cloud netcdfs
 #' @param pcvname,pixcname Names of pixcvec and pixel cloud netcdf files
 #' @importFrom fs path
+#' @importFrom dplyr inner_join
 #' @export
 join_pixc <- function(dir, pcvname = "pcv.nc",
                       pixcname = "pixel_cloud.nc") {
 
   pcvdf <- pixcvec_read(path(dir, pcvname))
-  pixcdf <- pixc_read(path(dir, pixcname)) %>%
+  pixcdf <- pixc_read(path(dir, pixcname))
+
+  outdf <- pixcdf %>%
     inner_join(pcvdf, by = c("azimuth_index", "range_index")) %>%
     dplyr::mutate(pixel_id = 1:nrow(.))
-  pixcdf
+  outattdf <- bind_rows2(list(attr(pcvdf, "atts"),
+                              attr(pixcdf, "atts")),
+                         addMissing = TRUE)
+
+  out <- structure(outdf, atts = outattdf)
 }
 
 #' Plot the area computation for a node
@@ -278,6 +285,7 @@ join_pixc <- function(dir, pcvname = "pcv.nc",
 nodearea_plot <- function(pixc_joined, nodes, node_truth = NULL, plot = TRUE) {
   sumrydf <- pixc_joined %>%
     dplyr::filter(node_index %in% nodes) %>%
+    dplyr::mutate(water_frac = ifelse(classification < 20, water_frac, 1)) %>%
     group_by(node_index) %>%
     dplyr::arrange(desc(water_frac)) %>%
     mutate(cum_area = cumsum(pixel_area),

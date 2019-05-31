@@ -4,7 +4,8 @@
 \alias{rt_read}
 \title{Get data from a rivertile netcdf}
 \usage{
-rt_read(ncfile, group = c("nodes", "reaches"), keep_na_vars = FALSE)
+rt_read(ncfile, group = c("nodes", "reaches"), keep_na_vars = FALSE,
+  as_sf = FALSE)
 }
 \arguments{
 \item{ncfile}{A rivertile netcdf file}
@@ -12,6 +13,8 @@ rt_read(ncfile, group = c("nodes", "reaches"), keep_na_vars = FALSE)
 \item{group}{Which group to get data from: "nodes" or "reaches}
 
 \item{keep_na_vars}{Keep variables that only contain missing values?}
+
+\item{as_sf}{Convert to a spatial frame?}
 }
 \description{
 Get data from a rivertile netcdf

@@ -68,7 +68,9 @@ conflictsToCharacter <- function (df1, df2, addMissing = TRUE, verbose = FALSE)
 
 #' A better (but slower) version of dplyr::bind_rows
 #'
-#' @param dflist a list of data.frames
+#' @param dfList a list of data.frames
+#' @param addMissing Add columns if missing from a subset of dfList?
+#' @param verbose Include messages about conversions?
 
 bind_rows2 <- function (dfList, addMissing = TRUE, verbose = FALSE) {
   redfun <- function(x, y)

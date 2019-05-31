@@ -83,14 +83,15 @@ adjust_longitude <- function(df) {
 #' @param ncfile A rivertile netcdf file
 #' @param group Which group to get data from: "nodes" or "reaches
 #' @param keep_na_vars Keep variables that only contain missing values?
+#' @param as_sf Convert to a spatial frame?
 #'
-#' @importFrom ncdf4 nc_open nc_close ncvar_get
+#' @importFrom ncdf4 nc_open nc_close ncvar_get ncatt_get
 #' @importFrom purrr map map_lgl
 #' @importFrom dplyr "%>%"
 #' @export
 
 rt_read <- function(ncfile, group = c("nodes", "reaches"),
-                    keep_na_vars = FALSE) {
+                    keep_na_vars = FALSE, as_sf = FALSE) {
   group <- match.arg(group)
 
   rt_nc <- nc_open(ncfile)
@@ -100,6 +101,14 @@ rt_read <- function(ncfile, group = c("nodes", "reaches"),
   grpvars <- names(rt_nc$var)[grepl(grepstr, names(rt_nc$var))]
   grpnames <- splitPiece(grpvars, "/", 2, fixed = TRUE)
 
+  if (!as_sf) {
+    ctlvar <- grepl("centerline", grpvars)
+    grpvars <- grpvars[!ctlvar]
+    grpnames <- grpnames[!ctlvar]
+  } else {
+    stop("as_sf not yet implemented.")
+  }
+
   # Smartly vectorize arrays. If already vector-like, use as.vector.
   # Otherwise make a data.frame.
   vecfun <- function(x) {
@@ -107,9 +116,10 @@ rt_read <- function(ncfile, group = c("nodes", "reaches"),
     if (length(dim(x)) == 2) return(as.data.frame(t(x)))
     stop("Too many dimensions")
   }
-
+  # browser()
   outvals_list <- map(grpvars, ~vecfun(ncvar_get(rt_nc, .))) %>%
     setNames(grpnames)
+  ncol_list <- purrr::map_int(outvals_list, length)
   outatts_list <- map(grpvars, ~vecfun(ncatt_get(rt_nc, .))) %>%
     setNames(grpnames)
 
@@ -123,6 +133,7 @@ rt_read <- function(ncfile, group = c("nodes", "reaches"),
   if (! keep_na_vars) {
     nacols <- map_lgl(outvals_df, ~sum(!is.na(.)) == 0)
     outvals_df <- outvals_df[!nacols]
+    # outatts_df <- outatts_df[!nacols, ]
   }
   outvals_df
   out <- structure(outvals_df, atts = outatts_df)
@@ -144,16 +155,23 @@ pixcvec_read <- function(ncfile, keep_na_vars = FALSE) {
 
   outvals_list <- map(pcvvars, ~as.vector(ncvar_get(pcv_nc, .))) %>%
     setNames(pcvvars)
+  outatts_list <- map(pcvvars, ~ncatt_get(pcv_nc, .)) %>%
+    setNames(pcvvars)
 
   outvals_df <- as.data.frame(outvals_list)
+  outatts_df <- bind_rows2(outatts_list) %>%
+    mutate(name = pcvvars)
+
   # Comply with -180:180 convention used by RiverObs
   outvals_df <- adjust_longitude(outvals_df)
 
   if (! keep_na_vars) {
     nacols <- map_lgl(outvals_list, ~sum(!is.na(.)) == 0)
     outvals_df <- outvals_df[!nacols]
+    outatts_df <- outatts_df[!nacols, ]
   }
-  outvals_df
+  out <- structure(outvals_df, atts = outatts_df)
+  out
 }
 
 #' Read a gdem netcdf
@@ -187,7 +205,6 @@ gdem_read <- function(ncfile) {
 pixc_read <- function(ncfile, group = c("pixel_cloud", "tvp", "noise"),
                       latlim = c(-90, 90), lonlim = c(-180, 180),
                       keep_na_vars = FALSE) {
-  # browser()
   group <- match.arg(group)
 
   pixc_nc <- nc_open(ncfile)
@@ -200,17 +217,31 @@ pixc_read <- function(ncfile, group = c("pixel_cloud", "tvp", "noise"),
 
   outvals_list <- map(grpvars, ~ncvar_get(pixc_nc, .)) %>%
     setNames(grpnames)
-  # split interferogram array into real and imaginary vectors
-  outvals_list$interferogram_r <- outvals_list$interferogram[1, ]
-  outvals_list$interferogram_i <- outvals_list$interferogram[2, ]
-  outvals_list$interferogram <- NULL
-  outvals_list <- purrr::map(outvals_list, ~as.vector(.))
+  outatts_list <- map(grpvars, ~ncatt_get(pixc_nc, .)) %>%
+    setNames(grpnames)
 
+  # split interferogram array into real and imaginary vectors
+  if (!is.null(outvals_list$interferogram)) {
+    outvals_list$interferogram_r <- outvals_list$interferogram[1, ]
+    outvals_list$interferogram_i <- outvals_list$interferogram[2, ]
+    outvals_list$interferogram <- NULL
+
+    # Replace interferogram parts of attribute table
+    outatts_list$interferogram_r <- outatts_list$interferogram
+    outatts_list$interferogram_i <- outatts_list$interferogram
+    outatts_list$interferogram <- NULL
+  }
+
+  # Convert to data.frames
+  outvals_list <- purrr::map(outvals_list, ~as.vector(.))
   outvals_df <- as.data.frame(outvals_list)
+
+  outatts_df <- attslist_to_dataframe(outatts_list)
 
   if (! keep_na_vars) {
     nacols <- map_lgl(outvals_list, ~sum(!is.na(.)) == 0)
     outvals_df <- outvals_df[!nacols]
+    outatts_df <- outatts_df[!nacols, ]
   }
 
   # Comply with -180:180 convention used by RiverObs
@@ -225,7 +256,8 @@ pixc_read <- function(ncfile, group = c("pixel_cloud", "tvp", "noise"),
                     latitude >= latlim[1], latitude <= latlim[2])
   }
 
-  outvals_df
+  out <- structure(outvals_df, atts = outatts_df)
+  out
 }
 
 
@@ -259,3 +291,16 @@ priordb_read <- function(ncfile, group = c("reaches", "nodes", "centerlines"),
   outvals_df
 }
 
+attslist_to_dataframe <- function(attslist) {
+
+  smplfunc <- function(x) {
+    needscollapse <- lengths(x) > 1
+    x[needscollapse] <- lapply(x[needscollapse], paste, collapse = ", ")
+    x
+  }
+  veclist <- lapply(attslist, smplfunc)
+
+  out <- bind_rows2(veclist) %>%
+    mutate(name = names(attslist))
+  out
+}

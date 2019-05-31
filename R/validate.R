@@ -88,7 +88,7 @@ rt_valdata <- function(dir, group = c("nodes", "reaches"),
                        keep_na_vars = FALSE,
                        time_round_digits = -2,
                        flag_out_nodes = TRUE) {
-
+  # browser()
   group <- match.arg(group)
   rtdf <- rt_read(paste0(dir, "/", rtname), group = group,
                   keep_na_vars = keep_na_vars)
