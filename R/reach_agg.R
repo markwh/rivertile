@@ -106,16 +106,29 @@ add_offset <- function(nodedata, reachdata) {
 #' Add node length and cumulative length (distance) downstream to node data
 #'
 #' @param nodedata As returned by \code{rt_read()}
+#' @param force Logical, force via estimate if gaps exist?
 #' @export
-add_nodelen <- function(nodedata) {
+add_nodelen <- function(nodedata, force = FALSE) {
 
   nodeids <- nodedata$node_id
-  if (!all_sequential(nodeids)) stop ("Gaps exist in node data")
+  if (!all_sequential(nodeids) && ! force) stop ("Gaps exist in node data")
 
   out <- nodedata %>%
     arrange(node_id) %>%
     mutate(nodelen = area_total / width,
            cumlen = cumsum(nodelen))
+  if (force) {
+    allnodes <- seq(min(nodeids), max(nodeids))
+    missingnodes <- setdiff(allnodes, out$node_id)
+    nextinds <- map_int(missingnodes, ~which.min(out$node_id[out$node_id > .]))
+    meandist <- mean(out$nodelen)
+
+    for (nodeind in nextinds) {
+      out$nodelen[nodeind] <- out$nodelen[nodeind] + meandist
+    }
+
+    out$cumlen <- cumsum(out$nodelen)
+  }
 
   out
 }

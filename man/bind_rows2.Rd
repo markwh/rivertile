@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{bind_rows2}
 \alias{bind_rows2}
-\title{A better (but slower) version of dplyr::bind_rows}
+\title{A more flexible (but slower) version of dplyr::bind_rows}
 \usage{
 bind_rows2(dfList, addMissing = TRUE, verbose = FALSE)
 }
@@ -14,5 +14,5 @@ bind_rows2(dfList, addMissing = TRUE, verbose = FALSE)
 \item{verbose}{Include messages about conversions?}
 }
 \description{
-A better (but slower) version of dplyr::bind_rows
+A more flexible (but slower) version of dplyr::bind_rows
 }

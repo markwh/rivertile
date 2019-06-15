@@ -4,10 +4,12 @@
 \alias{add_nodelen}
 \title{Add node length and cumulative length (distance) downstream to node data}
 \usage{
-add_nodelen(nodedata)
+add_nodelen(nodedata, force = FALSE)
 }
 \arguments{
 \item{nodedata}{As returned by \code{rt_read()}}
+
+\item{force}{Logical, force via estimate if gaps exist?}
 }
 \description{
 Add node length and cumulative length (distance) downstream to node data

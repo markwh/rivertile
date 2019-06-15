@@ -66,7 +66,7 @@ conflictsToCharacter <- function (df1, df2, addMissing = TRUE, verbose = FALSE)
   rbind(df1, df2, stringsAsFactors = FALSE)
 }
 
-#' A better (but slower) version of dplyr::bind_rows
+#' A more flexible (but slower) version of dplyr::bind_rows
 #'
 #' @param dfList a list of data.frames
 #' @param addMissing Add columns if missing from a subset of dfList?

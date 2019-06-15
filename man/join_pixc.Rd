@@ -4,12 +4,15 @@
 \alias{join_pixc}
 \title{Join pixcvec to pixel cloud}
 \usage{
-join_pixc(dir, pcvname = "pcv.nc", pixcname = "pixel_cloud.nc")
+join_pixc(dir, pcvname = "pcv.nc", pixcname = "pixel_cloud.nc",
+  type = c("inner", "outer"))
 }
 \arguments{
 \item{dir}{Directory containing pixel_cloud netcdfs}
 
 \item{pcvname, pixcname}{Names of pixcvec and pixel cloud netcdf files}
+
+\item{type}{What kind of join to perform? Default is "inner"}
 }
 \description{
 Join pixcvec to pixel cloud
