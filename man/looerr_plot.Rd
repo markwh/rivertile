@@ -4,7 +4,7 @@
 \alias{looerr_plot}
 \title{Leave-one-out relative error for reaches}
 \usage{
-looerr_plot(valdf, reach_ids = "all", variables = c("height", "width",
+looerr_plot(valdf, reach_ids = "all", variables = c("wse", "width",
   "area_total"), sort = c("id", "relerr"), plot = TRUE)
 }
 \arguments{

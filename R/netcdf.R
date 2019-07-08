@@ -258,7 +258,7 @@ pixc_read <- function(ncfile, group = c("pixel_cloud", "tvp", "noise"),
   if (! keep_na_vars) {
     nacols <- map_lgl(outvals_list, ~sum(!is.na(.)) == 0)
     outvals_df <- outvals_df[!nacols]
-    outatts_df <- outatts_df[!nacols, ]
+    if (!is.null(outatts_df)) outatts_df <- outatts_df[!nacols, ]
   }
 
   # Comply with -180:180 convention used by RiverObs
@@ -308,8 +308,9 @@ priordb_read <- function(ncfile, group = c("reaches", "nodes", "centerlines"),
   outvals_df
 }
 
+# Convert pixc attributes to data frame.
 attslist_to_dataframe <- function(attslist) {
-
+  if (sum(purrr::map_int(attslist, length)) == 0) return(NULL)
   smplfunc <- function(x) {
     needscollapse <- lengths(x) > 1
     x[needscollapse] <- lapply(x[needscollapse], paste, collapse = ", ")

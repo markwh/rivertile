@@ -64,7 +64,7 @@ rt_val_hist <- function(valdata, center = FALSE, scale = FALSE,
 #' @importFrom dplyr mutate
 #' @export
 
-rt_val_nodeseries <- function(valdata, variable = "height", err_only = TRUE, ...) {
+rt_val_nodeseries <- function(valdata, variable = "wse", err_only = TRUE, ...) {
 
   valdata <- valdata %>%
     `[`(.$variable == variable, ) %>%
@@ -98,7 +98,7 @@ rt_val_nodeseries <- function(valdata, variable = "height", err_only = TRUE, ...
 #'  Either or can be set to FALSE to disable plotting.
 #' @param plot if FALSE, just return the data used for plotting
 #' @export
-rt_val_scatter <- function(valdata, variables = c("height", "width", "slope"),
+rt_val_scatter <- function(valdata, variables = c("wse", "width", "slope"),
                            xvar = "id", yvar = c("value", "err", "relerr"),
                            ci1 = 0.6827, ci2 = 0.95,
                            plot = TRUE) {
@@ -341,7 +341,7 @@ nodearea_plot <- function(pixc_joined, nodes, node_truth = NULL, plot = TRUE) {
 #'
 #' @export
 cumerr_plot <- function(valdf, reach_ids = "all",
-                        variables = c("height", "width", "area_total"),
+                        variables = c("wse", "width", "area_total"),
                         desc = FALSE, plot = TRUE) {
 
   if (length(reach_ids) == 1 && reach_ids == "all")
@@ -383,7 +383,7 @@ cumerr_plot <- function(valdf, reach_ids = "all",
 #' @param plot if FALSE, return the data used to plot, but do not generate the plot.
 #' @export
 looerr_plot <- function(valdf, reach_ids = "all",
-                        variables = c("height", "width", "area_total"),
+                        variables = c("wse", "width", "area_total"),
                         sort = c("id", "relerr"), plot = TRUE) {
 
   sort <- match.arg(sort)

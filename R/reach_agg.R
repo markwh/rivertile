@@ -45,7 +45,7 @@ reach_agg <- function(nodedata, weight = TRUE) {
   }
   # Make linear models for height, slope
   hxmods <- split(nodedata, f = nodedata$reach_id) %>%
-    purrr::map(~reach_height_lm(node_h = .$height, node_h_u = .$height2_u,
+    purrr::map(~reach_height_lm(node_h = .$wse, node_h_u = .$wse_u,
                                 node_x = .$cumlen, loc_offset = .$loc_offset,
                                 weight = weight))
   hxcoef <- map(hxmods, ~as.data.frame(summary(.)$coefficients,
@@ -67,8 +67,8 @@ reach_agg <- function(nodedata, weight = TRUE) {
               area_u = sqrt(sum(.data$area_tot_u^2)),
               width = area / sum(.data$nodelen),
               width_u = area_u / sum(.data$nodelen)) %>%
-    mutate(height = reach_heights,
-           height_u = reach_heights_u,
+    mutate(wse = reach_heights,
+           wse_u = reach_heights_u,
            slope = reach_slopes,
            slope_u = reach_slopes_u) %>%
     rename(area_total = area, area_tot_u = area_u)

@@ -4,7 +4,7 @@
 \alias{rt_val_scatter}
 \title{Validation scatterplot}
 \usage{
-rt_val_scatter(valdata, variables = c("height", "width", "slope"),
+rt_val_scatter(valdata, variables = c("wse", "width", "slope"),
   xvar = "id", yvar = c("value", "err", "relerr"), ci1 = 0.6827,
   ci2 = 0.95, plot = TRUE)
 }

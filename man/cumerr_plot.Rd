@@ -4,7 +4,7 @@
 \alias{cumerr_plot}
 \title{Cumulative relative error for reaches}
 \usage{
-cumerr_plot(valdf, reach_ids = "all", variables = c("height", "width",
+cumerr_plot(valdf, reach_ids = "all", variables = c("wse", "width",
   "area_total"), desc = FALSE, plot = TRUE)
 }
 \arguments{

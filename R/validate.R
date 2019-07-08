@@ -23,9 +23,10 @@ rt_valdata_df <- function(obs, truth, time_round_digits = -2) {
 
   # variables assumed constant between rivertile and gdem, can be joined
   # separately. Or, variables only meaningful for actual rivertile data
+  # TODO: doublecheck these against latest variables from RiverObs
   commonvars_rch <- c(
     "p_latitud", "p_longitud", "p_n_nodes", "xtrk_dist", "partial_f",
-    "n_good_nod", "obs_frac_n", "reach_q", "geoid_height", "geoid_slop",
+    "n_good_nod", "obs_frac_n", "reach_q", "geoid_hght", "geoid_slop",
     "solid_tide", "pole_tide", "load_tide", "dry_trop_c", "wet_trp_c", "iono_c",
     "xover_cal_c", "p_n_nodes", "p_dist_out"
   )
@@ -37,18 +38,20 @@ rt_valdata_df <- function(obs, truth, time_round_digits = -2) {
   commonvars <- intersect(names(obs), c(commonvars_rch, commonvars_nod))
 
   # Vector of variables to compare between rivertile and gdem
-  varnames <- c("height", "height2", "slope", "width", "area_detct", "area_total",
+  varnames <- c("wse", "slope", "width", "area_detct", "area_total",
                 "latitude", "longitude")
   # Corresponding uncertainty variables
+  # TODO: switch to full uncertainties when implemented.
   uncnames <- setNames(
-    c("height_u", "height2_u", "slope_u", "width_u", "area_det_u", "area_tot_u",
+    c("wse_r_u", "slope_u", "width_u", "area_det_u", "area_tot_u",
       "latitude_u", "longitud_u"),
     varnames
   )
 
+
   varnames <- intersect(names(obs), varnames)
   uncnames <- uncnames[varnames]
-
+  # browser()
   # Make gathered data.frames
   obs_g <- gather(obs[c(idvars, varnames)],
                   key = "variable", value = "pixc_val", -!!idvars)
@@ -88,7 +91,6 @@ rt_valdata <- function(dir, group = c("nodes", "reaches"),
                        keep_na_vars = FALSE,
                        time_round_digits = -2,
                        flag_out_nodes = TRUE) {
-  # browser()
   group <- match.arg(group)
   rtdf <- rt_read(paste0(dir, "/", rtname), group = group,
                   keep_na_vars = keep_na_vars)

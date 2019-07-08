@@ -4,7 +4,7 @@
 \alias{rt_val_nodeseries}
 \title{Plot predictions and uncertainty bounds across nodes}
 \usage{
-rt_val_nodeseries(valdata, variable = "height", err_only = TRUE, ...)
+rt_val_nodeseries(valdata, variable = "wse", err_only = TRUE, ...)
 }
 \arguments{
 \item{valdata}{data.frame as returned by code{rt_valdata()}}
