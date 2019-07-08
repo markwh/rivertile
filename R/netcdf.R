@@ -2,6 +2,18 @@
 # Process netcdf outputs of RiverObs
 # modified from notebook20190204.Rmd, notebook20190318.Rmd, others?
 
+#' Helper function to coerce attribute list to tabular
+#'
+#' Current approach is to paste everything together--in future
+#' I may use list-valued columns.
+#'
+#' @param attlist as returnd by \code{ncdf4::ncatt_get()}
+atts_df_fun <- function(attlist) {
+  out <- attlist
+  lens <- purrr::map_int(attlist, length)
+  out[lens > 1] <- lapply(out[lens > 1], paste, collapse = ", ")
+  dplyr::as_tibble(out)
+}
 
 #' Read in only a subset of a netcdf variable
 #'
@@ -121,7 +133,9 @@ rt_read <- function(ncfile, group = c("nodes", "reaches"),
     setNames(grpnames)
   ncol_list <- purrr::map_int(outvals_list, length)
   outatts_list <- map(grpvars, ~vecfun(ncatt_get(rt_nc, .))) %>%
-    setNames(grpnames)
+    setNames(grpnames) %>%
+    map(atts_df_fun)
+  # browser()
 
   outvals_df <- tidyr::unnest(as.data.frame(outvals_list))
   outatts_df <- bind_rows2(outatts_list) %>%
@@ -155,8 +169,11 @@ pixcvec_read <- function(ncfile, keep_na_vars = FALSE) {
 
   outvals_list <- map(pcvvars, ~as.vector(ncvar_get(pcv_nc, .))) %>%
     setNames(pcvvars)
+
   outatts_list <- map(pcvvars, ~ncatt_get(pcv_nc, .)) %>%
-    setNames(pcvvars)
+    setNames(pcvvars) %>%
+    map(atts_df_fun)
+  # browser()
 
   outvals_df <- as.data.frame(outvals_list)
   outatts_df <- bind_rows2(outatts_list) %>%
