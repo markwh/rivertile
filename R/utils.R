@@ -14,6 +14,13 @@ splitPiece <- function (strvec, split, piece, ...) {
   out
 }
 
+#' Add variables to a data frame with given names
+#'
+#' Helper for conflictsToCharacters function
+#'
+#' @param df data.frame
+#' @param names names of variables to add
+#' @param verbose control messaging
 addVars <- function(df, names, verbose = FALSE) {
   if (length(names) == 0)
     return(df)
@@ -71,6 +78,7 @@ conflictsToCharacter <- function (df1, df2, addMissing = TRUE, verbose = FALSE)
 #' @param dfList a list of data.frames
 #' @param addMissing Add columns if missing from a subset of dfList?
 #' @param verbose Include messages about conversions?
+#' @export
 
 bind_rows2 <- function (dfList, addMissing = TRUE, verbose = FALSE) {
   redfun <- function(x, y)
