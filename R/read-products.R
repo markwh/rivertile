@@ -1,238 +1,242 @@
-# Functions to read SWOT river products
-# Migrated from swot-error/lib/rivertile.R
+# Functions for reading prior database
+# Migrated from netcdf.R
+# Process netcdf outputs of RiverObs
+# modified from notebook20190204.Rmd, notebook20190318.Rmd, others?
 
-
-
-#' Read prior database for node info
+#' Helper function to coerce attribute list to tabular
 #'
-#' @param ncfile netcdf file containing prior info
-#' @param nodeids optional vector of node indices
-#' @param reachids optional vector of reach indices
-#' @param as_sf Convert to spatial frame?
+#' Current approach is to paste everything together--in future
+#' I may use list-valued columns.
 #'
-#' @export
-priornode_read <- function(ncfile, nodeids = NULL, reachids = NULL, as_sf = TRUE) {
-  nc <- nc_open(ncfile)
-  on.exit(nc_close(nc))
+#' @param attlist as returnd by \code{ncdf4::ncatt_get()}
+atts_df_fun <- function(attlist) {
+  out <- attlist
+  lens <- purrr::map_int(attlist, length)
+  out[lens > 1] <- lapply(out[lens > 1], paste, collapse = ", ")
+  dplyr::as_tibble(out)
+}
 
-  getvar <- function(var, ...) as.vector(ncvar_get(nc, var, ...))
-  ncnodeids <- getvar("nodes/node_id")
-  ncreachids <- getvar("nodes/reach_id")
 
-  ncinds <- 1:length(ncreachids)
-  if (!is.null(nodeids)) {
-    ncinds <- match(nodeids, which(ncreachids %in% nodeids))
+adjust_longitude <- function(df) {
+  lonname_cands <- c("longitude", "longitude_vectorproc", "p_longitud")
+  lonnames <- intersect(lonname_cands, names(df))
+
+  for (lonname in lonnames) {
+    lonvec <- df[[lonname]]
+    df[[lonname]][lonvec > 180] <- lonvec[lonvec > 180] - 360
   }
-  if (!is.null(reachids)) {
-    ncinds <- intersect(ncinds, which(ncreachids %in% reachids))
+  df
+}
+
+#' Get data from a rivertile netcdf
+#'
+#' @param ncfile A rivertile netcdf file
+#' @param group Which group to get data from: "nodes" or "reaches
+#' @param keep_na_vars Keep variables that only contain missing values?
+#' @param as_sf Convert to a spatial frame?
+#'
+#' @importFrom ncdf4 nc_open nc_close ncvar_get ncatt_get
+#' @importFrom purrr map map_lgl
+#' @importFrom dplyr "%>%"
+#' @export
+
+rt_read <- function(ncfile, group = c("nodes", "reaches"),
+                    keep_na_vars = FALSE, as_sf = FALSE) {
+  group <- match.arg(group)
+
+  rt_nc <- nc_open(ncfile)
+  on.exit(nc_close(rt_nc))
+
+  grepstr <- sprintf("^%s/", group)
+  grpvars <- names(rt_nc$var)[grepl(grepstr, names(rt_nc$var))]
+  grpnames <- splitPiece(grpvars, "/", 2, fixed = TRUE)
+
+  if (!as_sf) {
+    ctlvar <- grepl("centerline", grpvars)
+    grpvars <- grpvars[!ctlvar]
+    grpnames <- grpnames[!ctlvar]
+  } else {
+    stop("as_sf not yet implemented.")
+  }
+
+  # Smartly vectorize arrays. If already vector-like, use as.vector.
+  # Otherwise make a data.frame.
+  vecfun <- function(x) {
+    if (length(dim(x)) < 2) return(as.vector(x))
+    if (length(dim(x)) == 2) return(as.data.frame(t(x)))
+    stop("Too many dimensions")
   }
   # browser()
-  outinds <- ncinds - min(ncinds) + 1
-  readstart <- min(ncinds)
-  readlen <- max(ncinds) - min(ncinds) + 1
-
-  node_df <- data.frame(
-    node_id = ncnodeids[outinds],
-    reach_id = ncreachids[outinds],
-    latitude = getvar("nodes/y", start = readstart, count = readlen)[outinds],
-    longitude = getvar("nodes/x", start = readstart, count = readlen)[outinds])
-
-  if (as_sf) {
-    out <- st_as_sf(node_df, coords = c("longitude", "latitude"),
-                    crs = "+proj=longlat +datum=WGS84")
-
-  } else {
-    out <- node_df
-  }
-
-  out
-}
-
-
-#' Read prior database for node info
-#'
-#' Unclear when this function would be useful.
-#'
-#' @param nodeids vector of node indices
-#' @param ncfile netcdf file containing prior info
-#'
-priorreach_read <- function(ncfile, reachids = NULL) {
-  nc <- nc_open(ncfile)
-  on.exit(nc_close(nc))
-
-  getvar <- function(var, ...) as.vector(ncvar_get(nc, var, ...))
-  ncreachids <- getvar("reaches/reach_id")
-
-  ncinds <- 1:length(ncreachids)
-  if (!is.null(reachids)) {
-    ncinds <- which(ncreachids %in% reachids)
-  }
-
-  outinds <- ncinds - min(ncinds) + 1
-  readstart <- min(ncinds)
-  readlen <- max(ncinds) - min(ncinds) + 1
-
-  out <- data.frame(
-    reach_id = getvar("reaches/reach_id", start = readstart, count = readlen)[outinds],
-    latitude = getvar("reaches/y", start = readstart, count = readlen)[outinds],
-    longitude = getvar("reaches/x", start = readstart, count = readlen)[outinds])
-  out
-}
-
-
-#' Read prior database for centerline info
-#'
-#' Returns a sf object with linestring geometry.
-#'
-#' @param ncfile netcdf file containing prior info
-#' @param nodeids optional vector of node indices
-#' @param reachids optional vector of reach indices
-#' @param as_sf Convert to spatial frame object?
-#'
-#' @importFrom sf st_as_sf st_cast
-#'
-#' @export
-priorcl_read <- function(ncfile, nodeids = NULL, reachids = NULL,
-                         as_sf = TRUE) {
-  nc <- nc_open(ncfile)
-  on.exit(nc_close(nc))
-
-  getvar <- function(var, ...) as.vector(ncvar_get(nc, var, ...))
-  ncnodeids <- ncvar_get(nc, "centerlines/node_id")[, 1]
-  ncreachids <- ncvar_get(nc, "centerlines/reach_id")[, 1]
-
-  ncinds <- 1:length(ncnodeids)
-  if (!is.null(nodeids)) {
-    ncinds <- match(nodeids, which(ncreachids %in% nodeids))
-  }
-  if (!is.null(reachids)) {
-    ncinds <- intersect(ncinds, which(ncreachids %in% reachids))
-  }
-
-  outinds <- ncinds - min(ncinds) + 1
-  readstart <- min(ncinds)
-  readlen <- max(ncinds) - min(ncinds) + 1
-
-  cl_df <- data.frame(
-    node_id = ncnodeids[outinds],
-    reach_id = ncreachids[outinds],
-    latitude = getvar("centerlines/y", start = readstart, count = readlen)[outinds],
-    longitude = getvar("centerlines/x", start = readstart, count = readlen)[outinds])
-
-  if (as_sf) {
-    cl_points <- st_as_sf(cl_df, coords = c("longitude", "latitude"),
-                          crs = "+proj=longlat +datum=WGS84")
-    out <- cl_points %>%
-      group_by(node_id, reach_id) %>%
-      summarize(geometry = st_cast(geometry, to = "LINESTRING", ids = 1)) %>%
-      ungroup()
-
-  } else {
-    out <- cl_df
-  }
-
-  out
-}
-
-#' Read orbit locations
-#'
-#' Returns a sf object with multilinestring geometry.
-#'
-#' @param ncfile netcdf file containing prior info
-#' @param as_sf Convert to spatial frame object?
-#' @param maxpoints Maximum number of points to use for line resolution.
-#'
-#' @importFrom sf st_as_sf st_cast
-#'
-#' @export
-orbit_read <- function(ncfile, as_sf = TRUE, maxpoints = 1000) {
-  nc <- nc_open(ncfile)
-  on.exit(nc_close(nc))
-
-  getvar <- function(var, ...) as.vector(ncvar_get(nc, var, ...))
-  passlat <- getvar("latitude")
-  passlon <- getvar("longitude")
-  npts <- length(passlat)
-
-  keepinds <- 1:npts
-  if (npts > maxpoints) {
-    keepinds <- seq(1, npts, length.out = maxpoints)
-  }
-
-  out <- data.frame(latitude = passlat, longitude = passlon) %>%
-    mutate(londif = c(0, diff(longitude)),
-           cutoff = abs(londif) > 300,
-           splitvar = cumsum(cutoff)) %>%
-    `[`(keepinds, )
-
-  if (as_sf) {
-    out <- out %>%
-      st_as_sf(coords = c("longitude", "latitude"),
-               crs = "+proj=longlat +datum=WGS84") %>%
-      group_by(splitvar) %>%
-      summarize(geometry = st_cast(geometry, to = "LINESTRING", ids = splitvar)) %>%
-      summarize(geometry = st_cast(geometry, to = "MULTILINESTRING", ids = 1))
-  }
-
-  out
-}
-
-#' Get corners of tile polygon
-#'
-#' @param nadir1,nadir2 length-2 vector giving longitude and latitude
-#' @param heading satellite heading in degrees
-#' @param xtstart,xtend Distance from nadir to start/end the swath, meters
-#' @param half Which half of the tile: "L" for left, "R" for right
-getTileCorners <- function(nadir1, nadir2, heading, xtstart = 4000,
-                           xtend = 64000, half = c("L", "R")) {
-  half <- match.arg(half)
-
-  xtdir <- heading + ifelse(half == "R", 90, -90)
-  xtdir <- ifelse(abs(xtdir) > 180, xtdir - 360, xtdir)
-
-
-  points1 <- geosphere::destPoint(nadir1, b = xtdir, d = c(xtstart, xtend))
-  points2 <- geosphere::destPoint(nadir2, b = xtdir, d = c(xtstart, xtend))
-
-  out <- rbind(points1, points2[2:1, ], points1[1, ])
-  out
-}
-
-corner2sf <- function(cornermat) {
-  # cornersf <- st_as_sf(cornermat[c(1, 2, 4, 3, 1), ],
-  #                      coords = c("lon", "lat"),
-  #                      crs = "+proj=longlat +datum=WGS84")
-  out <- st_polygon(cornermat)
-  out
-}
-
-#' Get tiles as spatial frames POLYGON sfc
-#'
-#' Returns a sfc with tile polygons
-#'
-#' @param nadir1,nadir2 Either a length-2 vector or a 2-column matrix giving lon, lat
-#' @inheritParams getTileCorners
-getTilePolygons <- function(nadir1, nadir2, heading, half, xtstart = 4000,
-                            xtend = 64000) {
-  splitfun <- function(x) {
-    if (is.numeric(x) && is.vector(x)) {
-      stopifnot(length(x) == 2)
-      x <- matrix(x, ncol = 2)
-    }
-    out <- split(x, f = 1:nrow(x))
-  }
-  nadir1 <- splitfun(nadir1)
-  nadir2 <- splitfun(nadir2)
-  stopifnot(length(nadir1) == length(nadir2))
-
-  inputlist <- list(nadir1 = nadir1, nadir2 = nadir2, heading = heading, half = half)
+  outvals_list <- map(grpvars, ~vecfun(ncvar_get(rt_nc, .))) %>%
+    setNames(grpnames)
+  ncol_list <- purrr::map_int(outvals_list, length)
+  outatts_list <- map(grpvars, ~vecfun(ncatt_get(rt_nc, .))) %>%
+    setNames(grpnames) %>%
+    map(atts_df_fun)
   # browser()
-  cornermats <- purrr::pmap(inputlist, getTileCorners, xtstart = xtstart,
-                            xtend = xtend)
-  cornerpolys <- purrr::map(cornermats, ~st_polygon(list(.)))
-  out <- st_sfc(cornerpolys, crs = "+proj=longlat +datum=WGS84")
+
+  outvals_df <- tidyr::unnest(as.data.frame(outvals_list))
+  outatts_df <- bind_rows2(outatts_list) %>%
+    mutate(name = grpnames)
+
+  # Comply with -180:180 convention used by RiverObs
+  outvals_df <- adjust_longitude(outvals_df)
+
+  if (! keep_na_vars) {
+    nacols <- map_lgl(outvals_df, ~sum(!is.na(.)) == 0)
+    outvals_df <- outvals_df[!nacols]
+    # outatts_df <- outatts_df[!nacols, ]
+  }
+  outvals_df
+  out <- structure(outvals_df, atts = outatts_df)
   out
 }
 
 
+#' Read a pixcvec from a netcdf file
+#'
+#' @param ncfile PIXCVEC netcdf file
+#' @param keep_na_vars Keep variables that only contain missing values?
+#' @export
+pixcvec_read <- function(ncfile, keep_na_vars = FALSE) {
 
+  pcv_nc <- nc_open(ncfile)
+  on.exit(nc_close(pcv_nc))
+
+  pcvvars <- names(pcv_nc$var)
+
+  outvals_list <- map(pcvvars, ~as.vector(ncvar_get(pcv_nc, .))) %>%
+    setNames(pcvvars)
+
+  outatts_list <- map(pcvvars, ~ncatt_get(pcv_nc, .)) %>%
+    setNames(pcvvars) %>%
+    map(atts_df_fun)
+  # browser()
+
+  outvals_df <- as.data.frame(outvals_list)
+  outatts_df <- bind_rows2(outatts_list) %>%
+    mutate(name = pcvvars)
+
+  # Comply with -180:180 convention used by RiverObs
+  outvals_df <- adjust_longitude(outvals_df)
+
+  if (! keep_na_vars) {
+    nacols <- map_lgl(outvals_list, ~sum(!is.na(.)) == 0)
+    outvals_df <- outvals_df[!nacols]
+    outatts_df <- outatts_df[!nacols, ]
+  }
+  out <- structure(outvals_df, atts = outatts_df)
+  out
+}
+
+#' Read data from a pixel_cloud netcdf file
+#'
+#' @param ncfile a pixel_cloud netcdf file
+#' @param group Which group to get data from: "pixel_cloud", "tvp", or "noise"
+#' @param latlim,lonlim Limits of latitude and longitude, as length-2 vectors
+#' @param keep_na_vars Keep variables with nothing but missing values?
+#'
+#' @export
+pixc_read <- function(ncfile, group = c("pixel_cloud", "tvp", "noise"),
+                      latlim = c(-90, 90), lonlim = c(-180, 180),
+                      keep_na_vars = FALSE) {
+  group <- match.arg(group)
+
+  pixc_nc <- nc_open(ncfile)
+  on.exit(nc_close(pixc_nc))
+
+  grepstr <- sprintf("^%s/", group)
+
+  grpvars <- names(pixc_nc$var)[grepl(grepstr, names(pixc_nc$var))]
+  grpnames <- splitPiece(grpvars, "/", 2, fixed = TRUE)
+
+  outvals_list <- map(grpvars, ~ncvar_get(pixc_nc, .)) %>%
+    setNames(grpnames)
+  outatts_list <- map(grpvars, ~ncatt_get(pixc_nc, .)) %>%
+    setNames(grpnames)
+
+  # split interferogram array into real and imaginary vectors
+  if (!is.null(outvals_list$interferogram)) {
+    outvals_list$interferogram_r <- outvals_list$interferogram[1, ]
+    outvals_list$interferogram_i <- outvals_list$interferogram[2, ]
+    outvals_list$interferogram <- NULL
+
+    # Replace interferogram parts of attribute table
+    outatts_list$interferogram_r <- outatts_list$interferogram
+    outatts_list$interferogram_i <- outatts_list$interferogram
+    outatts_list$interferogram <- NULL
+  }
+
+  # Convert to data.frames
+  outvals_list <- purrr::map(outvals_list, ~as.vector(.))
+  outvals_df <- as.data.frame(outvals_list)
+
+  outatts_df <- attslist_to_dataframe(outatts_list)
+
+  if (! keep_na_vars) {
+    nacols <- map_lgl(outvals_list, ~sum(!is.na(.)) == 0)
+    outvals_df <- outvals_df[!nacols]
+    if (!is.null(outatts_df)) outatts_df <- outatts_df[!nacols, ]
+  }
+
+  # Comply with -180:180 convention used by RiverObs
+  outvals_df <- adjust_longitude(outvals_df)
+
+  # Filter lat/lon that are exactly 0, restrict to bounding box
+  if (group == "pixel_cloud") {
+    outvals_df <- dplyr::filter(outvals_df,
+                                !is.na(latitude), !is.na(longitude),
+                                latitude != 0, longitude != 0,
+                                longitude >= lonlim[1], longitude <= lonlim[2],
+                                latitude >= latlim[1], latitude <= latlim[2])
+  }
+
+  out <- structure(outvals_df, atts = outatts_df)
+  out
+}
+
+#' Join pixcvec to pixel cloud
+#'
+#' @param dir Directory containing pixel_cloud netcdfs
+#' @param pcvname,pixcname Names of pixcvec and pixel cloud netcdf files
+#' @param type What kind of join to perform? Default is "inner"
+#' @importFrom fs path
+#' @importFrom dplyr inner_join
+#' @export
+join_pixc <- function(dir, pcvname = "pcv.nc",
+                      pixcname = "pixel_cloud.nc",
+                      type = c("inner", "outer")) {
+
+  type <- match.arg(type)
+  joinfun <- if (type == "inner") dplyr::inner_join else dplyr::full_join
+
+  pcvdf <- pixcvec_read(path(dir, pcvname))
+  pixcdf <- pixc_read(path(dir, pixcname))
+
+  outdf <- pixcdf %>%
+    joinfun(pcvdf, by = c("azimuth_index", "range_index")) %>%
+    dplyr::mutate(pixel_id = 1:nrow(.))
+  outattdf <- bind_rows2(list(attr(pcvdf, "atts"),
+                              attr(pixcdf, "atts")),
+                         addMissing = TRUE)
+
+  out <- structure(outdf, atts = outattdf)
+}
+
+
+#' Convert pixc attributes to data frame.
+#'
+#' @importFrom dplyr mutate
+attslist_to_dataframe <- function(attslist) {
+  if (sum(purrr::map_int(attslist, length)) == 0) return(NULL)
+  smplfunc <- function(x) {
+    needscollapse <- lengths(x) > 1
+    x[needscollapse] <- lapply(x[needscollapse], paste, collapse = ", ")
+    x
+  }
+  veclist <- lapply(attslist, smplfunc)
+
+  out <- bind_rows2(veclist) %>%
+    mutate(name = names(attslist))
+  out
+}
