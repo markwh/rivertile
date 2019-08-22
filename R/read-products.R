@@ -191,27 +191,27 @@ pixc_read <- function(ncfile, group = c("pixel_cloud", "tvp", "noise"),
                                 latitude >= latlim[1], latitude <= latlim[2])
   }
 
+  # reclass variables
+  outvals_df$classification <- as.factor(outvals_df$classification)
+
   out <- structure(outvals_df, atts = outatts_df)
   out
 }
 
 #' Join pixcvec to pixel cloud
 #'
-#' @param dir Directory containing pixel_cloud netcdfs
-#' @param pcvname,pixcname Names of pixcvec and pixel cloud netcdf files
+#' @param pixcdf as returned by \code{pixc_read()}
+#' @param pcvdf as returned by \code{pixcvec_read()}
+#'
 #' @param type What kind of join to perform? Default is "inner"
 #' @importFrom fs path
 #' @importFrom dplyr inner_join
 #' @export
-join_pixc <- function(dir, pcvname = "pcv.nc",
-                      pixcname = "pixel_cloud.nc",
-                      type = c("inner", "outer")) {
+#'
+pixc_join <- function(pixcdf, pcvdf, type = c("inner", "outer")) {
 
   type <- match.arg(type)
   joinfun <- if (type == "inner") dplyr::inner_join else dplyr::full_join
-
-  pcvdf <- pixcvec_read(path(dir, pcvname))
-  pixcdf <- pixc_read(path(dir, pixcname))
 
   outdf <- pixcdf %>%
     joinfun(pcvdf, by = c("azimuth_index", "range_index")) %>%
