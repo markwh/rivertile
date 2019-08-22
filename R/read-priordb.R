@@ -40,7 +40,8 @@ priornode_read <- function(ncfile, nodeids = NULL, reachids = NULL, as_sf = TRUE
     longitude = getvar("nodes/x", start = readstart, count = readlen)[outinds])
 
   if (as_sf) {
-    out <- st_as_sf(node_df, coords = c("longitude", "latitude"),
+    if (!check_sf()) stop("as_sf argument requires sf package. Please install it.")
+    out <- sf::st_as_sf(node_df, coords = c("longitude", "latitude"),
                     crs = "+proj=longlat +datum=WGS84")
 
   } else {
@@ -55,7 +56,7 @@ priornode_read <- function(ncfile, nodeids = NULL, reachids = NULL, as_sf = TRUE
 #'
 #' Unclear when this function would be useful.
 #'
-#' @param nodeids vector of node indices
+#' @param reachids vector of reach indices
 #' @param ncfile netcdf file containing prior info
 #'
 priorreach_read <- function(ncfile, reachids = NULL) {
@@ -91,7 +92,6 @@ priorreach_read <- function(ncfile, reachids = NULL) {
 #' @param reachids optional vector of reach indices
 #' @param as_sf Convert to spatial frame object?
 #'
-#' @importFrom sf st_as_sf st_cast
 #' @importFrom dplyr group_by summarize ungroup
 #'
 #' @export
@@ -123,11 +123,12 @@ priorcl_read <- function(ncfile, nodeids = NULL, reachids = NULL,
     longitude = getvar("centerlines/x", start = readstart, count = readlen)[outinds])
 
   if (as_sf) {
-    cl_points <- st_as_sf(cl_df, coords = c("longitude", "latitude"),
+    if (!check_sf()) stop("as_sf argument requires sf package. Please install it.")
+    cl_points <- sf::st_as_sf(cl_df, coords = c("longitude", "latitude"),
                           crs = "+proj=longlat +datum=WGS84")
     out <- cl_points %>%
       group_by(node_id, reach_id) %>%
-      summarize(geometry = st_cast(geometry, to = "LINESTRING", ids = 1)) %>%
+      summarize(geometry = sf::st_cast(geometry, to = "LINESTRING", ids = 1)) %>%
       ungroup()
 
   } else {
@@ -145,7 +146,6 @@ priorcl_read <- function(ncfile, nodeids = NULL, reachids = NULL,
 #' @param as_sf Convert to spatial frame object?
 #' @param maxpoints Maximum number of points to use for line resolution.
 #'
-#' @importFrom sf st_as_sf st_cast
 #' @importFrom dplyr mutate
 #'
 #' @export
@@ -170,12 +170,13 @@ orbit_read <- function(ncfile, as_sf = TRUE, maxpoints = 1000) {
     `[`(keepinds, )
 
   if (as_sf) {
+    if (!check_sf()) stop("as_sf argument requires sf package. Please install it.")
     out <- out %>%
-      st_as_sf(coords = c("longitude", "latitude"),
+      sf::st_as_sf(coords = c("longitude", "latitude"),
                crs = "+proj=longlat +datum=WGS84") %>%
       group_by(splitvar) %>%
-      summarize(geometry = st_cast(geometry, to = "LINESTRING", ids = splitvar)) %>%
-      summarize(geometry = st_cast(geometry, to = "MULTILINESTRING", ids = 1))
+      summarize(geometry = sf::st_cast(geometry, to = "LINESTRING", ids = splitvar)) %>%
+      summarize(geometry = sf::st_cast(geometry, to = "MULTILINESTRING", ids = 1))
   }
 
   out
@@ -189,6 +190,7 @@ orbit_read <- function(ncfile, as_sf = TRUE, maxpoints = 1000) {
 #' @param half Which half of the tile: "L" for left, "R" for right
 getTileCorners <- function(nadir1, nadir2, heading, xtstart = 4000,
                            xtend = 64000, half = c("L", "R")) {
+  if (!check_geosphere()) stop("getTileCorners requires geosphere package. Please install it.")
   half <- match.arg(half)
 
   xtdir <- heading + ifelse(half == "R", 90, -90)
@@ -202,13 +204,10 @@ getTileCorners <- function(nadir1, nadir2, heading, xtstart = 4000,
   out
 }
 
-corner2sf <- function(cornermat) {
-  # cornersf <- st_as_sf(cornermat[c(1, 2, 4, 3, 1), ],
-  #                      coords = c("lon", "lat"),
-  #                      crs = "+proj=longlat +datum=WGS84")
-  out <- st_polygon(cornermat)
-  out
-}
+# corner2sf <- function(cornermat) {
+#   out <- sf::st_polygon(cornermat)
+#   out
+# }
 
 #' Get tiles as spatial frames POLYGON sfc
 #'
@@ -218,6 +217,7 @@ corner2sf <- function(cornermat) {
 #' @inheritParams getTileCorners
 getTilePolygons <- function(nadir1, nadir2, heading, half, xtstart = 4000,
                             xtend = 64000) {
+  if (!check_sf()) stop("getTilePolygons requires sf package. Please install it.")
   splitfun <- function(x) {
     if (is.numeric(x) && is.vector(x)) {
       stopifnot(length(x) == 2)
@@ -233,8 +233,8 @@ getTilePolygons <- function(nadir1, nadir2, heading, half, xtstart = 4000,
   # browser()
   cornermats <- purrr::pmap(inputlist, getTileCorners, xtstart = xtstart,
                             xtend = xtend)
-  cornerpolys <- purrr::map(cornermats, ~st_polygon(list(.)))
-  out <- st_sfc(cornerpolys, crs = "+proj=longlat +datum=WGS84")
+  cornerpolys <- purrr::map(cornermats, ~sf::st_polygon(list(.)))
+  out <- sf::st_sfc(cornerpolys, crs = "+proj=longlat +datum=WGS84")
   out
 }
 

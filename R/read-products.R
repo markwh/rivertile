@@ -189,10 +189,9 @@ pixc_read <- function(ncfile, group = c("pixel_cloud", "tvp", "noise"),
                                 latitude != 0, longitude != 0,
                                 longitude >= lonlim[1], longitude <= lonlim[2],
                                 latitude >= latlim[1], latitude <= latlim[2])
+    # reclass variables
+    outvals_df$classification <- as.factor(outvals_df$classification)
   }
-
-  # reclass variables
-  outvals_df$classification <- as.factor(outvals_df$classification)
 
   out <- structure(outvals_df, atts = outatts_df)
   out
@@ -225,7 +224,7 @@ pixc_join <- function(pixcdf, pcvdf, type = c("inner", "outer")) {
 
 
 #' Convert pixc attributes to data frame.
-#'
+#' @param attslist list of attributes
 #' @importFrom dplyr mutate
 attslist_to_dataframe <- function(attslist) {
   if (sum(purrr::map_int(attslist, length)) == 0) return(NULL)

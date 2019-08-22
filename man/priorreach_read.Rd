@@ -9,7 +9,7 @@ priorreach_read(ncfile, reachids = NULL)
 \arguments{
 \item{ncfile}{netcdf file containing prior info}
 
-\item{nodeids}{vector of node indices}
+\item{reachids}{vector of reach indices}
 }
 \description{
 Unclear when this function would be useful.

@@ -6,6 +6,9 @@
 \usage{
 attslist_to_dataframe(attslist)
 }
+\arguments{
+\item{attslist}{list of attributes}
+}
 \description{
 Convert pixc attributes to data frame.
 }

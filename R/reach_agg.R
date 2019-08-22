@@ -37,6 +37,7 @@ reach_height_lm <- function(node_h, node_h_u, node_x, loc_offset,
 #' @param weight Use weighted regression based on height uncertainty?
 #' @importFrom stats median
 #' @importFrom rlang .data
+#' @importFrom dplyr bind_rows rename
 #' @export
 reach_agg <- function(nodedata, weight = TRUE) {
 
@@ -107,6 +108,8 @@ add_offset <- function(nodedata, reachdata) {
 #'
 #' @param nodedata As returned by \code{rt_read()}
 #' @param force Logical, force via estimate if gaps exist?
+#'
+#' @importFrom dplyr arrange
 #' @export
 add_nodelen <- function(nodedata, force = FALSE) {
 

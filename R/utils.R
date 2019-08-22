@@ -21,11 +21,12 @@ splitPiece <- function (strvec, split, piece, ...) {
 #' @param df data.frame
 #' @param names names of variables to add
 #' @param verbose control messaging
+#' @importFrom stats setNames
 addVars <- function(df, names, verbose = FALSE) {
   if (length(names) == 0)
     return(df)
 
-  newcols <- matrix(NA, nr = nrow(df), nc = length(names)) %>%
+  newcols <- matrix(NA, nrow = nrow(df), ncol = length(names)) %>%
     as.data.frame() %>%
     setNames(names)
 
@@ -85,4 +86,16 @@ bind_rows2 <- function (dfList, addMissing = TRUE, verbose = FALSE) {
     conflictsToCharacter(x, y, addMissing = addMissing, verbose = verbose)
   out <- Reduce(redfun, dfList)
   out
+}
+
+#' Check if sf package is installed.
+#'
+check_sf <- function() {
+  requireNamespace("sf", quietly = TRUE)
+}
+
+#' Check if geosphere package is installed.
+#'
+check_geosphere <- function() {
+  requireNamespace("sf", quietly = TRUE)
 }
