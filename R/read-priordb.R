@@ -23,21 +23,17 @@ priornode_read <- function(ncfile, nodeids = NULL, reachids = NULL, as_sf = TRUE
 
   ncinds <- 1:length(ncreachids)
   if (!is.null(nodeids)) {
-    ncinds <- match(nodeids, which(ncreachids %in% nodeids))
+    ncinds <- which(ncnodeids %in% nodeids)
   }
   if (!is.null(reachids)) {
     ncinds <- intersect(ncinds, which(ncreachids %in% reachids))
   }
-  # browser()
-  outinds <- ncinds - min(ncinds) + 1
-  readstart <- min(ncinds)
-  readlen <- max(ncinds) - min(ncinds) + 1
 
   node_df <- data.frame(
-    node_id = ncnodeids[outinds],
-    reach_id = ncreachids[outinds],
-    latitude = getvar("nodes/y", start = readstart, count = readlen)[outinds],
-    longitude = getvar("nodes/x", start = readstart, count = readlen)[outinds])
+    node_id = ncnodeids[ncinds],
+    reach_id = ncreachids[ncinds],
+    latitude = getvar("nodes/y")[ncinds],
+    longitude = getvar("nodes/x")[ncinds])
 
   if (as_sf) {
     if (!check_sf()) stop("as_sf argument requires sf package. Please install it.")

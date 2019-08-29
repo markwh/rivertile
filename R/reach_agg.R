@@ -34,19 +34,26 @@ reach_height_lm <- function(node_h, node_h_u, node_x, loc_offset,
 #'  variables.
 #'
 #' @param nodedata Must have additional columns from \code{add_nodelen(), add_offset()}
+#' @param usenodes Which nodes to use. Defaults to "all"
 #' @param weight Use weighted regression based on height uncertainty?
 #' @importFrom stats median
 #' @importFrom rlang .data
 #' @importFrom dplyr bind_rows rename
 #' @export
-reach_agg <- function(nodedata, weight = TRUE) {
+reach_agg <- function(nodedata, usenodes = "all", weight = TRUE) {
 
   if (is.null(nodedata$cumlen) || is.null(nodedata$nodelen)) {
     stop("nodedata must have the following precomputed: nodelen, cumlen, loc_offset")
   }
+
+  # Filter to specified nodes.
+  if (usenodes != "all") {
+    nodedata <- dplyr::filter(nodedata, node_id %in% usenodes)
+  }
+
   # Make linear models for height, slope
   hxmods <- split(nodedata, f = nodedata$reach_id) %>%
-    purrr::map(~reach_height_lm(node_h = .$wse, node_h_u = .$wse_u,
+    purrr::map(~reach_height_lm(node_h = .$wse, node_h_u = .$wse_r_u,
                                 node_x = .$cumlen, loc_offset = .$loc_offset,
                                 weight = weight))
   hxcoef <- map(hxmods, ~as.data.frame(summary(.)$coefficients,
@@ -69,9 +76,9 @@ reach_agg <- function(nodedata, weight = TRUE) {
               width = area / sum(.data$nodelen),
               width_u = area_u / sum(.data$nodelen)) %>%
     mutate(wse = reach_heights,
-           wse_u = reach_heights_u,
+           wse_r_u = reach_heights_u,
            slope = reach_slopes,
-           slope_u = reach_slopes_u) %>%
+           slope_r_u = reach_slopes_u) %>%
     rename(area_total = area, area_tot_u = area_u)
 
 
@@ -120,17 +127,20 @@ add_nodelen <- function(nodedata, force = FALSE) {
     arrange(node_id) %>%
     mutate(nodelen = area_total / width,
            cumlen = cumsum(nodelen))
-  if (force) {
+  if (force) { # attempt to estimate cumlen.
     allnodes <- seq(min(nodeids), max(nodeids))
     missingnodes <- setdiff(allnodes, out$node_id)
-    nextinds <- map_int(missingnodes, ~which.min(out$node_id[out$node_id > .]))
+
+    nextinds <- missingnodes %>%
+      map_int(~which(out$node_id == min(out$node_id[out$node_id > .])))
     meandist <- mean(out$nodelen)
 
-    for (nodeind in nextinds) {
-      out$nodelen[nodeind] <- out$nodelen[nodeind] + meandist
-    }
+    for (i in seq_along(missingnodes)) {
+      nodeidi <- missingnodes[i]
+      gtidinds <- which(out$node_id > nodeidi)
 
-    out$cumlen <- cumsum(out$nodelen)
+      out$cumlen[gtidinds] <- out$cumlen[gtidinds] + meandist
+    }
   }
 
   out

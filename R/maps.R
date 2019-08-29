@@ -113,7 +113,7 @@ pixc_map <- function(pixdf,
       ggforce::geom_circle(aes(x0 = longitude, y0 = latitude,
                       fill = colorvar,
                       r = radius_ll),
-                  n = 8, linetype = 0, ...)
+                  data = pixdf, n = 8, linetype = 0, ...)
   } else { # use points instead of circles
 
     pixcsize = 2.5
