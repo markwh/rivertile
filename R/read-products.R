@@ -66,11 +66,12 @@ rt_read <- function(ncfile, group = c("nodes", "reaches"),
     if (length(dim(x)) == 2) return(as.data.frame(t(x)))
     stop("Too many dimensions")
   }
-  # browser()
-  outvals_list <- map(grpvars, ~vecfun(ncvar_get(rt_nc, .))) %>%
+
+
+  outvals_list <- map(grpvars, ~vecfun(ncvar_get(rt_nc, varid = ., collapse_degen = FALSE))) %>%
     setNames(grpnames)
   ncol_list <- purrr::map_int(outvals_list, length)
-  outatts_list <- map(grpvars, ~vecfun(ncatt_get(rt_nc, .))) %>%
+  outatts_list <- map(grpvars, ~vecfun(ncatt_get(rt_nc, varid = .))) %>%
     setNames(grpnames) %>%
     map(atts_df_fun)
   # browser()
@@ -105,7 +106,7 @@ pixcvec_read <- function(ncfile, keep_na_vars = FALSE) {
 
   pcvvars <- names(pcv_nc$var)
 
-  outvals_list <- map(pcvvars, ~as.vector(ncvar_get(pcv_nc, .))) %>%
+  outvals_list <- map(pcvvars, ~as.vector(ncvar_get(pcv_nc, ., collapse_degen = FALSE))) %>%
     setNames(pcvvars)
 
   outatts_list <- map(pcvvars, ~ncatt_get(pcv_nc, .)) %>%
@@ -150,7 +151,7 @@ pixc_read <- function(ncfile, group = c("pixel_cloud", "tvp", "noise"),
   grpvars <- names(pixc_nc$var)[grepl(grepstr, names(pixc_nc$var))]
   grpnames <- splitPiece(grpvars, "/", 2, fixed = TRUE)
 
-  outvals_list <- map(grpvars, ~ncvar_get(pixc_nc, .)) %>%
+  outvals_list <- map(grpvars, ~ncvar_get(pixc_nc, ., collapse_degen = FALSE)) %>%
     setNames(grpnames)
   outatts_list <- map(grpvars, ~ncatt_get(pixc_nc, .)) %>%
     setNames(grpnames)
