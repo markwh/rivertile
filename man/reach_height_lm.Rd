@@ -4,7 +4,8 @@
 \alias{reach_height_lm}
 \title{Weighted linear model for height as a function of distance downstream}
 \usage{
-reach_height_lm(node_h, node_h_u, node_x, loc_offset, weight = TRUE)
+reach_height_lm(node_h, node_h_u, node_x, x_ctr, loc_offset,
+  weight = TRUE)
 }
 \arguments{
 \item{node_h}{Vector of node heights}
@@ -12,6 +13,8 @@ reach_height_lm(node_h, node_h_u, node_x, loc_offset, weight = TRUE)
 \item{node_h_u}{Vector of node height uncertainty (1-sigma)}
 
 \item{node_x}{Vector of node downstream distance}
+
+\item{x_ctr}{center of reach, as given by meandist in \code{add_offset()}}
 
 \item{loc_offset}{From reach-level rivertile, distance from observed to prior
 reach center}

@@ -4,10 +4,12 @@
 \alias{reach_agg}
 \title{Aggregate node-level data to reach-scale}
 \usage{
-reach_agg(nodedata, weight = TRUE)
+reach_agg(nodedata, usenodes = "all", weight = TRUE)
 }
 \arguments{
 \item{nodedata}{Must have additional columns from \code{add_nodelen(), add_offset()}}
+
+\item{usenodes}{Which nodes to use. Defaults to "all"}
 
 \item{weight}{Use weighted regression based on height uncertainty?}
 }
