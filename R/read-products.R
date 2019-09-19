@@ -68,17 +68,24 @@ rt_read <- function(ncfile, group = c("nodes", "reaches"),
   }
 
 
-  outvals_list <- map(grpvars, ~vecfun(ncvar_get(rt_nc, varid = ., collapse_degen = FALSE))) %>%
+  outvals_list <- map(grpvars,
+                      ~vecfun(ncvar_get(rt_nc, varid = .,
+                                        collapse_degen = FALSE))) %>%
     setNames(grpnames)
-  ncol_list <- purrr::map_int(outvals_list, length)
   outatts_list <- map(grpvars, ~vecfun(ncatt_get(rt_nc, varid = .))) %>%
     setNames(grpnames) %>%
     map(atts_df_fun)
-  # browser()
 
-  outvals_df <- tidyr::unnest(as.data.frame(outvals_list))
+  nested_elems <- purrr::map_lgl(outvals_list,
+                                 function(x) is.list(x) || (!is.vector(x)))
+  varlen <- unique(purrr::map_int(outvals_list[!nested_elems], length))
+  if (length(varlen) > 1L) stop("Variables must have the same length.\n")
+
+  outvals_df <- as.data.frame(outvals_list)
   outatts_df <- bind_rows2(outatts_list) %>%
     mutate(name = grpnames)
+
+  if (nrow(outvals_df) != varlen) stop("outvals_df has too many rows!\n")
 
   # Comply with -180:180 convention used by RiverObs
   outvals_df <- adjust_longitude(outvals_df)
@@ -106,7 +113,9 @@ pixcvec_read <- function(ncfile, keep_na_vars = FALSE) {
 
   pcvvars <- names(pcv_nc$var)
 
-  outvals_list <- map(pcvvars, ~as.vector(ncvar_get(pcv_nc, ., collapse_degen = FALSE))) %>%
+  outvals_list <- map(pcvvars,
+                      ~as.vector(ncvar_get(pcv_nc, varid = .,
+                                           collapse_degen = FALSE))) %>%
     setNames(pcvvars)
 
   outatts_list <- map(pcvvars, ~ncatt_get(pcv_nc, .)) %>%
@@ -151,7 +160,9 @@ pixc_read <- function(ncfile, group = c("pixel_cloud", "tvp", "noise"),
   grpvars <- names(pixc_nc$var)[grepl(grepstr, names(pixc_nc$var))]
   grpnames <- splitPiece(grpvars, "/", 2, fixed = TRUE)
 
-  outvals_list <- map(grpvars, ~ncvar_get(pixc_nc, ., collapse_degen = FALSE)) %>%
+  outvals_list <- map(grpvars,
+                      ~ncvar_get(pixc_nc, varid = .,
+                                 collapse_degen = FALSE)) %>%
     setNames(grpnames)
   outatts_list <- map(grpvars, ~ncatt_get(pixc_nc, .)) %>%
     setNames(grpnames)
