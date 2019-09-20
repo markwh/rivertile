@@ -36,7 +36,7 @@ grab_nodes <- function(pixdf, nodeids, pcvdf = pixdf) {
 #' Filter a pixel data frame to a range/azimuth bounding box.
 #'
 #' @describeIn grab_nodes Filter to a range/azimuth bounding box.
-#' @inheritParams gab_nodes
+#' @inheritParams grab_nodes
 #' @param dilate Number of pixels to extend beyond the supplied nodes
 #'   (default is 0).
 #' @export
@@ -52,6 +52,47 @@ grab_nodebox <- function(pixdf, nodeids, pcvdf = pixdf, dilate = 0) {
   out <- pixdf %>%
     dplyr::filter(range_index >= minrange, range_index <= maxrange,
            azimuth_index >= minazimuth, azimuth_index <= maxazimuth)
+  out
+}
+
+#' Create a bounding box (lat/lon) from pixc and node ids.
+#'
+#' @describeIn grab_nodes Create a lat/lon bounding box.
+#' @inheritParams grab_nodes
+#' @param dilate_frac fraction of lat/lon range to dilate the bounding box
+#'   (applied on both sides)
+#' @export
+rt_nodebbox <- function(pixdf, nodeids, pcvdf = pixdf, dilate = 0) {
+  radf <- pcvdf %>%
+    dplyr::filter(node_index %in% nodeids)
+
+  minlat <- min(radf$latitude, na.rm = TRUE)
+  maxlat <- max(radf$latitude, na.rm = TRUE)
+  minlon <- min(radf$longitude, na.rm = TRUE)
+  maxlon <- max(radf$longitude, na.rm = TRUE)
+
+  latrange <- maxlat - minlat
+  lonrange <- maxlon - minlon
+
+  out <- list(minlat = minlat - latrange * dilate,
+              maxlat = maxlat + latrange * dilate,
+              minlon = minlon - lonrange * dilate,
+              maxlon = maxlon + lonrange * dilate)
+  out
+}
+
+#' Filter a pixel data frame to a lat/lon bounding box.
+#'
+#' @describeIn grab_nodes Filter to a lat/lon bounding box.
+#' @inheritParams grab_nodes
+#' @param dilate_frac fraction of lat/lon range to dilate the bounding box
+#'   (applied on both sides)
+#' @param bbox as returned by \code{rt_nodebbox()}
+#' @export
+grab_bbox <- function(pixdf, bbox) {
+  out <- pixdf %>%
+    dplyr::filter(latitude >= bbox$minlat, longitude >= bbox$minlon,
+                  latitude <= bbox$maxlat, longitude <= bbox$maxlon)
   out
 }
 
