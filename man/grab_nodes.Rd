@@ -11,7 +11,7 @@ grab_nodes(pixdf, nodeids, pcvdf = pixdf)
 
 grab_nodebox(pixdf, nodeids, pcvdf = pixdf, dilate = 0)
 
-rt_nodebbox(pixdf, nodeids, pcvdf = pixdf, dilate = 0)
+rt_nodebbox(pixdf, nodeids, pcvdf = pixdf, dilate_frac = 0)
 
 grab_bbox(pixdf, bbox)
 }
@@ -27,13 +27,10 @@ is already in \code{pixdf}}
 \item{dilate}{Number of pixels to extend beyond the supplied nodes
 (default is 0).}
 
+\item{dilate_frac}{fraction of lat/lon range to dilate the bounding box
+(applied on both sides)}
+
 \item{bbox}{as returned by \code{rt_nodebbox()}}
-
-\item{dilate_frac}{fraction of lat/lon range to dilate the bounding box
-(applied on both sides)}
-
-\item{dilate_frac}{fraction of lat/lon range to dilate the bounding box
-(applied on both sides)}
 }
 \description{
 Only include pixels assigned to a given vector of nodes.

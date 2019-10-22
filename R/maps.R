@@ -62,7 +62,7 @@ grab_nodebox <- function(pixdf, nodeids, pcvdf = pixdf, dilate = 0) {
 #' @param dilate_frac fraction of lat/lon range to dilate the bounding box
 #'   (applied on both sides)
 #' @export
-rt_nodebbox <- function(pixdf, nodeids, pcvdf = pixdf, dilate = 0) {
+rt_nodebbox <- function(pixdf, nodeids, pcvdf = pixdf, dilate_frac = 0) {
   radf <- pcvdf %>%
     dplyr::filter(node_index %in% nodeids)
 
@@ -74,10 +74,10 @@ rt_nodebbox <- function(pixdf, nodeids, pcvdf = pixdf, dilate = 0) {
   latrange <- maxlat - minlat
   lonrange <- maxlon - minlon
 
-  out <- list(minlat = minlat - latrange * dilate,
-              maxlat = maxlat + latrange * dilate,
-              minlon = minlon - lonrange * dilate,
-              maxlon = maxlon + lonrange * dilate)
+  out <- list(minlat = minlat - latrange * dilate_frac,
+              maxlat = maxlat + latrange * dilate_frac,
+              minlon = minlon - lonrange * dilate_frac,
+              maxlon = maxlon + lonrange * dilate_frac)
   out
 }
 
@@ -85,8 +85,6 @@ rt_nodebbox <- function(pixdf, nodeids, pcvdf = pixdf, dilate = 0) {
 #'
 #' @describeIn grab_nodes Filter to a lat/lon bounding box.
 #' @inheritParams grab_nodes
-#' @param dilate_frac fraction of lat/lon range to dilate the bounding box
-#'   (applied on both sides)
 #' @param bbox as returned by \code{rt_nodebbox()}
 #' @export
 grab_bbox <- function(pixdf, bbox) {
