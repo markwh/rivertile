@@ -106,6 +106,7 @@ grab_bbox <- function(pixdf, bbox) {
 #' @param real_area If \code{TRUE}, use display actual pixel areas. Note that
 #'   this will take considerably more computation time.
 #' @param water_frac Scale pixel size by \code{water_frac} column?
+#' @param plot if FALSE return the plot data instead of generating the plot.
 #' @param maxpoints Maximum number of points to allow. Meant to encourage
 #'   filtering so as not to overwhelm the renderer.
 #' @param ... passed to \code{ggplot2::geom_point} or \code{ggforce::geom_circle}
@@ -117,6 +118,7 @@ pixc_map <- function(pixdf,
                      geoloc = c("best", "orig", "improved"),
                      real_area = FALSE,
                      water_frac = FALSE,
+                     plot = TRUE,
                      maxpoints = 2500, ...) {
 
   geoloc <- match.arg(geoloc)
@@ -138,6 +140,7 @@ pixc_map <- function(pixdf,
   if (water_frac)  pixdf$sizescale <- pixdf$water_frac
   pixdf$colorvar <- pixdf[[colorby]]
 
+
   # Construct ggplot object
   mapgg <- pixdf %>%
     ggplot()
@@ -146,9 +149,10 @@ pixc_map <- function(pixdf,
 
     # convert pixel area to radius in meters, then to lat/lon
     pixradius_m <- sqrt(pixdf$pixel_area * pixdf$sizescale / pi)
-    gdradius_m <- sqrt(gdemdf$pixel_area / pi)
 
     pixdf$radius_ll <- to_latlon(pixradius_m, pixdf$latitude)
+
+    if (!plot) return(pixdf)
 
     mapgg <- mapgg +
       ggforce::geom_circle(aes(x0 = longitude, y0 = latitude,
@@ -156,7 +160,7 @@ pixc_map <- function(pixdf,
                       r = radius_ll),
                   data = pixdf, n = 8, linetype = 0, ...)
   } else { # use points instead of circles
-
+    if (!plot) return(pixdf)
     pixcsize = 2.5
     mapgg <- mapgg +
       geom_point(aes(x = longitude, y = latitude,

@@ -6,7 +6,7 @@
 \title{Display a pixel cloud as a map.}
 \usage{
 pixc_map(pixdf, colorby = "classification", geoloc = c("best", "orig",
-  "improved"), real_area = FALSE, water_frac = FALSE,
+  "improved"), real_area = FALSE, water_frac = FALSE, plot = TRUE,
   maxpoints = 2500, ...)
 
 pixc_slantmap(pixdf, colorby = "classification", maxpoints = 5000, ...)
@@ -24,6 +24,8 @@ which columns are available in \code{pixcdf}.}
 this will take considerably more computation time.}
 
 \item{water_frac}{Scale pixel size by \code{water_frac} column?}
+
+\item{plot}{if FALSE return the plot data instead of generating the plot.}
 
 \item{maxpoints}{Maximum number of points to allow. Meant to encourage
 filtering so as not to overwhelm the renderer.}
